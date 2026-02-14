@@ -9,8 +9,8 @@
     <version>3.6.7</version>
 
     <name>ruoyi</name>
-    <url>http://www.ruoyi.vip</url>
-    <description>若依微服务系统</description>
+    <url>http://www.zmhume.cn</url>
+    <description>zoumh微服务系统</description>
 
     <properties>
         <ruoyi.version>3.6.7</ruoyi.version>
@@ -227,6 +227,31 @@
     </modules>
     <packaging>pom</packaging>
 
+    <!-- 环境 -->
+    <profiles>
+        <profile>
+            <id>dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <profile.name>dev</profile.name>
+                <server.ip>156.225.28.110</server.ip>
+                <!--数据库密码-->
+                <pwd>root</pwd>
+                <nacos.pwd>nacos</nacos.pwd>
+                <redis.pwd>redis</redis.pwd>
+                <config.server-addr>${server.ip}:8848</config.server-addr>
+                <redis.host>${server.ip}</redis.host>
+                <!--                主库-->
+                <mysql.ip>${server.ip}</mysql.ip>
+                <mysql.port>3306</mysql.port>
+                <mysql.base>zoumh</mysql.base>
+                <mysql.user>root</mysql.user>
+            </properties>
+        </profile>
+    </profiles>
+
     <dependencies>
         <!-- bootstrap 启动器 -->
         <dependency>
@@ -236,16 +261,26 @@
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>3.8.1</version>
                 <configuration>
-                    <parameters>true</parameters>
                     <source>${java.version}</source>
                     <target>${java.version}</target>
                     <encoding>${project.build.sourceEncoding}</encoding>
+                    <projectArtifact/>
+                    <outputDirectory/>
+                    <mojoStatusPath/>
+                    <mainOutputDirectory/>
+                    <basedir/>
                 </configuration>
             </plugin>
         </plugins>

@@ -5,15 +5,12 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.ruoyi</groupId>
-        <artifactId>ruoyi</artifactId>
+        <artifactId>zoumh-api</artifactId>
         <version>3.6.7</version>
     </parent>
 
-    <artifactId>zoumh-api</artifactId>
-    <packaging>pom</packaging>
-    <modules>
-        <module>zoumh-api-tools</module>
-    </modules>
+    <groupId>com.zoumh</groupId>
+    <artifactId>zoumh-api-tools</artifactId>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>

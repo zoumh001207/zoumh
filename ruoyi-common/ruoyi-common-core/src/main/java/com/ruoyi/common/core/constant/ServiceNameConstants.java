@@ -21,4 +21,9 @@ public class ServiceNameConstants
      * 文件服务的serviceid
      */
     public static final String FILE_SERVICE = "ruoyi-file";
+
+    /**
+     * 内部请求来源
+     */
+    public static final String FROM_SOURCE = "from-source";
 }

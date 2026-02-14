@@ -1,0 +1,10 @@
+spring:
+  data:
+    redis:
+      host: @redis.host@
+      database: 0
+      port: 6379
+      timeout: 30000s
+      lettuce:
+        shutdown-timeout: 100ms
+      password: @redis.pwd@

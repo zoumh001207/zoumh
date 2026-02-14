@@ -1,7 +1,6 @@
-# 注：springCloud项目名称和data-id须一致
 spring:
   application:
-    name: system
+    name: zoumh-tools
   profiles:
     active: @profile.name@
   cloud:
@@ -16,4 +15,4 @@ spring:
         file-extension: yml
         shared-configs:
           - application-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}
-        data-id: system
+        data-id: zoumh-tools
