@@ -56,14 +56,13 @@
             <artifactId>lombok</artifactId>
             <scope>provided</scope>
         </dependency>
-
+        
         <dependency>
             <groupId>com.ruoyi</groupId>
-            <artifactId>ruoyi-api-auth</artifactId>
-            <version>3.6.6</version>
-            <scope>compile</scope>
+            <artifactId>ruoyi-api-system</artifactId>
+            <version>${ruoyi.version}</version>
         </dependency>
-        
+
     </dependencies>
 
     <build>
