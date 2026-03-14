@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -55,9 +56,9 @@ public class HotelCollectionTaskController extends BaseController {
     @RequiresPermissions("hotel:monitor:query")
     @GetMapping("/location-options")
     public AjaxResult locationOptions(
-        String cityCode,
-        @DateTimeFormat(pattern = "yyyy-MM-dd") Date checkInDate,
-        @DateTimeFormat(pattern = "yyyy-MM-dd") Date checkOutDate
+        @RequestParam("cityCode") String cityCode,
+        @RequestParam(value = "checkInDate", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date checkInDate,
+        @RequestParam(value = "checkOutDate", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date checkOutDate
     ) {
         return success(hotelCollectionTaskService.listLocationOptions(cityCode, checkInDate, checkOutDate));
     }
