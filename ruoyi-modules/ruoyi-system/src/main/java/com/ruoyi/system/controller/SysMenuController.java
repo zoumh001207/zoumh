@@ -51,7 +51,7 @@ public class SysMenuController extends BaseController
      */
     @RequiresPermissions("system:menu:query")
     @GetMapping(value = "/{menuId}")
-    public AjaxResult getInfo(@PathVariable Long menuId)
+    public AjaxResult getInfo(@PathVariable("menuId") Long menuId)
     {
         return success(menuService.selectMenuById(menuId));
     }

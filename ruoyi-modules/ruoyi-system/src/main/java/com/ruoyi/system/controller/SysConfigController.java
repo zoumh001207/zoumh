@@ -61,7 +61,7 @@ public class SysConfigController extends BaseController
      * 根据参数编号获取详细信息
      */
     @GetMapping(value = "/{configId}")
-    public AjaxResult getInfo(@PathVariable Long configId)
+    public AjaxResult getInfo(@PathVariable("configId") Long configId)
     {
         return success(configService.selectConfigById(configId));
     }
@@ -70,7 +70,7 @@ public class SysConfigController extends BaseController
      * 根据参数键名查询参数值
      */
     @GetMapping(value = "/configKey/{configKey}")
-    public AjaxResult getConfigKey(@PathVariable String configKey)
+    public AjaxResult getConfigKey(@PathVariable("configKey") String configKey)
     {
         return success(configService.selectConfigByKey(configKey));
     }
@@ -113,7 +113,7 @@ public class SysConfigController extends BaseController
     @RequiresPermissions("system:config:remove")
     @Log(title = "参数管理", businessType = BusinessType.DELETE)
     @DeleteMapping("/{configIds}")
-    public AjaxResult remove(@PathVariable Long[] configIds)
+    public AjaxResult remove(@PathVariable("configIds") Long[] configIds)
     {
         configService.deleteConfigByIds(configIds);
         return success();
