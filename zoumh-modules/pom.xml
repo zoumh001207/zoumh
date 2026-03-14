@@ -15,6 +15,7 @@
     <modules>
 
         <module>zoumh-tools</module>
+        <module>zoumh-hotel-monitor</module>
     </modules>
 
     <properties>

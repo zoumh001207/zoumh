@@ -15,6 +15,8 @@ TZ_NAME="${TZ_NAME:-Asia/Shanghai}"
 
 mkdir -p "${PACKAGE_DIR}" "${LOG_DIR}"
 
+docker rm -f "ruoyi-monitor" >/dev/null 2>&1 || true
+
 run_java_service() {
   local name="$1"
   local jar_name="$2"
@@ -85,11 +87,11 @@ run_java_service \
   -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
 
 run_java_service \
-  "ruoyi-monitor" \
-  "ruoyi-visual-monitor.jar" \
-  -e "NACOS_ADDR=${NACOS_ADDR}" \
-  -e "NACOS_USERNAME=${NACOS_USERNAME}" \
-  -e "NACOS_PASSWORD=${NACOS_PASSWORD}"
+  "zoumh-hotel-monitor" \
+  "zoumh-hotel-monitor.jar" \
+  -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
+  -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
+  -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
 
 run_java_service \
   "ruoyi-gateway" \
@@ -106,4 +108,4 @@ if [[ -n "${POST_DEPLOY_CMD:-}" ]]; then
   sh -lc "${POST_DEPLOY_CMD}"
 fi
 
-docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E 'ruoyi-|zoumh-tools' || true
+docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E 'ruoyi-|zoumh-tools|zoumh-hotel-monitor' || true

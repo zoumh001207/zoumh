@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zoumh.hotelmonitor.mapper.HotelPriceMonitorMapper">
+
+    <resultMap id="HotelPriceMonitorResult" type="com.zoumh.hotelmonitor.domain.HotelPriceMonitor">
+        <id property="monitorId" column="monitor_id"/>
+        <result property="hotelName" column="hotel_name"/>
+        <result property="platform" column="platform"/>
+        <result property="city" column="city"/>
+        <result property="roomType" column="room_type"/>
+        <result property="checkInDate" column="check_in_date"/>
+        <result property="checkOutDate" column="check_out_date"/>
+        <result property="targetPrice" column="target_price"/>
+        <result property="currentPrice" column="current_price"/>
+        <result property="currency" column="currency"/>
+        <result property="channelUrl" column="channel_url"/>
+        <result property="status" column="status"/>
+        <result property="latestChange" column="latest_change"/>
+        <result property="lastCheckedTime" column="last_checked_time"/>
+        <result property="notifyEnabled" column="notify_enabled"/>
+        <result property="remark" column="remark"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <resultMap id="HotelPriceHistoryResult" type="com.zoumh.hotelmonitor.domain.HotelPriceHistory">
+        <id property="historyId" column="history_id"/>
+        <result property="monitorId" column="monitor_id"/>
+        <result property="observedPrice" column="observed_price"/>
+        <result property="changeAmount" column="change_amount"/>
+        <result property="availability" column="availability"/>
+        <result property="sourceNote" column="source_note"/>
+        <result property="observedAt" column="observed_at"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+    </resultMap>
+
+    <sql id="selectHotelPriceMonitorColumns">
+        select monitor_id, hotel_name, platform, city, room_type, check_in_date, check_out_date,
+               target_price, current_price, currency, channel_url, status, latest_change,
+               last_checked_time, notify_enabled, remark, create_by, create_time, update_by, update_time
+        from hotel_price_monitor
+    </sql>
+
+    <select id="selectHotelPriceMonitorList" parameterType="com.zoumh.hotelmonitor.domain.HotelPriceMonitor" resultMap="HotelPriceMonitorResult">
+        <include refid="selectHotelPriceMonitorColumns"/>
+        <where>
+            <if test="hotelName != null and hotelName != ''">
+                and hotel_name like concat('%', #{hotelName}, '%')
+            </if>
+            <if test="platform != null and platform != ''">
+                and platform = #{platform}
+            </if>
+            <if test="city != null and city != ''">
+                and city like concat('%', #{city}, '%')
+            </if>
+            <if test="status != null and status != ''">
+                and status = #{status}
+            </if>
+        </where>
+        order by update_time desc, create_time desc
+    </select>
+
+    <select id="selectHotelPriceMonitorById" resultMap="HotelPriceMonitorResult">
+        <include refid="selectHotelPriceMonitorColumns"/>
+        where monitor_id = #{monitorId}
+    </select>
+
+    <insert id="insertHotelPriceMonitor" parameterType="com.zoumh.hotelmonitor.domain.HotelPriceMonitor" useGeneratedKeys="true" keyProperty="monitorId">
+        insert into hotel_price_monitor
+        (hotel_name, platform, city, room_type, check_in_date, check_out_date, target_price, current_price,
+         currency, channel_url, status, latest_change, last_checked_time, notify_enabled, remark, create_by, create_time)
+        values
+        (#{hotelName}, #{platform}, #{city}, #{roomType}, #{checkInDate}, #{checkOutDate}, #{targetPrice}, #{currentPrice},
+         #{currency}, #{channelUrl}, #{status}, #{latestChange}, #{lastCheckedTime}, #{notifyEnabled}, #{remark}, #{createBy}, #{createTime})
+    </insert>
+
+    <update id="updateHotelPriceMonitor" parameterType="com.zoumh.hotelmonitor.domain.HotelPriceMonitor">
+        update hotel_price_monitor
+        <set>
+            <if test="hotelName != null">hotel_name = #{hotelName},</if>
+            <if test="platform != null">platform = #{platform},</if>
+            <if test="city != null">city = #{city},</if>
+            <if test="roomType != null">room_type = #{roomType},</if>
+            <if test="checkInDate != null">check_in_date = #{checkInDate},</if>
+            <if test="checkOutDate != null">check_out_date = #{checkOutDate},</if>
+            <if test="targetPrice != null">target_price = #{targetPrice},</if>
+            <if test="currentPrice != null">current_price = #{currentPrice},</if>
+            <if test="currency != null">currency = #{currency},</if>
+            <if test="channelUrl != null">channel_url = #{channelUrl},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="latestChange != null">latest_change = #{latestChange},</if>
+            <if test="lastCheckedTime != null">last_checked_time = #{lastCheckedTime},</if>
+            <if test="notifyEnabled != null">notify_enabled = #{notifyEnabled},</if>
+            remark = #{remark},
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        </set>
+        where monitor_id = #{monitorId}
+    </update>
+
+    <delete id="deleteHotelPriceMonitorByIds">
+        delete from hotel_price_monitor where monitor_id in
+        <foreach collection="monitorIds" item="monitorId" open="(" separator="," close=")">
+            #{monitorId}
+        </foreach>
+    </delete>
+
+    <select id="countAllMonitors" resultType="int">
+        select count(1) from hotel_price_monitor
+    </select>
+
+    <select id="countByStatus" resultType="int">
+        select count(1) from hotel_price_monitor where status = #{status}
+    </select>
+
+    <select id="countTargetReached" resultType="int">
+        select count(1)
+        from hotel_price_monitor
+        where current_price is not null
+          and target_price is not null
+          and current_price &lt;= target_price
+    </select>
+
+    <select id="selectHotelPriceHistoryList" resultMap="HotelPriceHistoryResult">
+        select history_id, monitor_id, observed_price, change_amount, availability, source_note, observed_at,
+               create_by, create_time
+        from hotel_price_history
+        where monitor_id = #{monitorId}
+        order by observed_at desc, history_id desc
+    </select>
+
+    <select id="selectLatestHotelPriceHistory" resultMap="HotelPriceHistoryResult">
+        select history_id, monitor_id, observed_price, change_amount, availability, source_note, observed_at,
+               create_by, create_time
+        from hotel_price_history
+        where monitor_id = #{monitorId}
+        order by observed_at desc, history_id desc
+        limit 1
+    </select>
+
+    <insert id="insertHotelPriceHistory" parameterType="com.zoumh.hotelmonitor.domain.HotelPriceHistory" useGeneratedKeys="true" keyProperty="historyId">
+        insert into hotel_price_history
+        (monitor_id, observed_price, change_amount, availability, source_note, observed_at, create_by, create_time)
+        values
+        (#{monitorId}, #{observedPrice}, #{changeAmount}, #{availability}, #{sourceNote}, #{observedAt}, #{createBy}, #{createTime})
+    </insert>
+</mapper>
