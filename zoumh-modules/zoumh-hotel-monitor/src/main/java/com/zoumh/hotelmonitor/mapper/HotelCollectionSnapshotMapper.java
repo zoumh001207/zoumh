@@ -11,6 +11,8 @@ public interface HotelCollectionSnapshotMapper {
 
     List<HotelRoomSnapshot> selectHotelRoomSnapshotList(@Param("snapshotId") Long snapshotId);
 
+    int deleteRoomSnapshotsByTaskId(@Param("taskId") Long taskId);
+
     int deleteSnapshotsByTaskId(@Param("taskId") Long taskId);
 
     int insertHotelCollectionSnapshot(HotelCollectionSnapshot snapshot);

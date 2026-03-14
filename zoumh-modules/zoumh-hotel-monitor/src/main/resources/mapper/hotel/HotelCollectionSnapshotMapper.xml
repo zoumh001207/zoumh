@@ -52,7 +52,7 @@
         order by room_snapshot_id asc
     </select>
 
-    <delete id="deleteSnapshotsByTaskId">
+    <delete id="deleteRoomSnapshotsByTaskId">
         delete from hotel_room_snapshot
         where snapshot_id in (
             select snapshot_id
@@ -62,6 +62,9 @@
                 where task_id = #{taskId}
             ) snapshots
         );
+    </delete>
+
+    <delete id="deleteSnapshotsByTaskId">
         delete from hotel_collection_snapshot where task_id = #{taskId}
     </delete>
 

@@ -74,6 +74,7 @@ public class HotelCollectionTaskServiceImpl implements IHotelCollectionTaskServi
         hotelCollectionTaskMapper.updateHotelCollectionTask(task);
         try {
             CtripCityHotelResult result = ctripCityCollectionService.collect(task);
+            hotelCollectionSnapshotMapper.deleteRoomSnapshotsByTaskId(taskId);
             hotelCollectionSnapshotMapper.deleteSnapshotsByTaskId(taskId);
             for (HotelCollectionSnapshot snapshot : result.getHotels()) {
                 snapshot.setTaskId(taskId);
