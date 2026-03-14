@@ -82,16 +82,16 @@ public class CtripCityCollectionServiceImpl implements ICtripCityCollectionServi
         String html = fetchCtripHtml(cityCode, checkInDate, checkOutDate);
         Document document = Jsoup.parse(html);
         Element script = document.selectFirst("script#webcore_internal");
-        if (script == null) {
-            return List.of();
-        }
         Map<String, HotelLocationOption> options = new LinkedHashMap<>();
-        try {
-            JsonNode root = objectMapper.readTree(script.html());
-            collectLocationOptions(root, options);
-        } catch (Exception ex) {
-            throw new IllegalStateException("解析位置筛选项失败", ex);
+        if (script != null) {
+            try {
+                JsonNode root = objectMapper.readTree(script.html());
+                collectLocationOptions(root, options);
+            } catch (Exception ex) {
+                throw new IllegalStateException("解析位置筛选项失败", ex);
+            }
         }
+        collectLocationOptionsFromDom(document, options);
         return new ArrayList<>(options.values());
     }
 
@@ -162,6 +162,23 @@ public class CtripCityCollectionServiceImpl implements ICtripCityCollectionServi
         }
         if (node.isArray()) {
             node.forEach(item -> collectLocationOptions(item, options));
+        }
+    }
+
+    private void collectLocationOptionsFromDom(Document document, Map<String, HotelLocationOption> options) {
+        for (Element container : document.select("div")) {
+            String title = container.select("> .style_filter-item-title__ArhI_ p, > div > p").text();
+            if (!title.contains("位置") && !title.contains("行政区") && !title.contains("商圈")) {
+                continue;
+            }
+            for (Element label : container.select("label")) {
+                String text = label.text().trim();
+                if (text.isBlank() || text.length() > 40 || text.contains("更多")) {
+                    continue;
+                }
+                String key = "DOM:" + text;
+                options.putIfAbsent(key, new HotelLocationOption(text, text, "位置"));
+            }
         }
     }
 
