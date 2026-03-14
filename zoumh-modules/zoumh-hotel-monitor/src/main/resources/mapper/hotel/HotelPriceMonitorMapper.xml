@@ -16,9 +16,14 @@
         <result property="currentPrice" column="current_price"/>
         <result property="currency" column="currency"/>
         <result property="channelUrl" column="channel_url"/>
+        <result property="crawlEnabled" column="crawl_enabled"/>
+        <result property="crawlStrategy" column="crawl_strategy"/>
+        <result property="crawlConfig" column="crawl_config"/>
         <result property="status" column="status"/>
         <result property="latestChange" column="latest_change"/>
         <result property="lastCheckedTime" column="last_checked_time"/>
+        <result property="lastCrawledAt" column="last_crawled_at"/>
+        <result property="lastErrorMessage" column="last_error_message"/>
         <result property="notifyEnabled" column="notify_enabled"/>
         <result property="remark" column="remark"/>
         <result property="createBy" column="create_by"/>
@@ -41,8 +46,9 @@
 
     <sql id="selectHotelPriceMonitorColumns">
         select monitor_id, hotel_name, platform, city, room_type, check_in_date, check_out_date,
-               target_price, current_price, currency, channel_url, status, latest_change,
-               last_checked_time, notify_enabled, remark, create_by, create_time, update_by, update_time
+               target_price, current_price, currency, channel_url, crawl_enabled, crawl_strategy, crawl_config,
+               status, latest_change, last_checked_time, last_crawled_at, last_error_message,
+               notify_enabled, remark, create_by, create_time, update_by, update_time
         from hotel_price_monitor
     </sql>
 
@@ -73,10 +79,12 @@
     <insert id="insertHotelPriceMonitor" parameterType="com.zoumh.hotelmonitor.domain.HotelPriceMonitor" useGeneratedKeys="true" keyProperty="monitorId">
         insert into hotel_price_monitor
         (hotel_name, platform, city, room_type, check_in_date, check_out_date, target_price, current_price,
-         currency, channel_url, status, latest_change, last_checked_time, notify_enabled, remark, create_by, create_time)
+         currency, channel_url, crawl_enabled, crawl_strategy, crawl_config, status, latest_change,
+         last_checked_time, last_crawled_at, last_error_message, notify_enabled, remark, create_by, create_time)
         values
         (#{hotelName}, #{platform}, #{city}, #{roomType}, #{checkInDate}, #{checkOutDate}, #{targetPrice}, #{currentPrice},
-         #{currency}, #{channelUrl}, #{status}, #{latestChange}, #{lastCheckedTime}, #{notifyEnabled}, #{remark}, #{createBy}, #{createTime})
+         #{currency}, #{channelUrl}, #{crawlEnabled}, #{crawlStrategy}, #{crawlConfig}, #{status}, #{latestChange},
+         #{lastCheckedTime}, #{lastCrawledAt}, #{lastErrorMessage}, #{notifyEnabled}, #{remark}, #{createBy}, #{createTime})
     </insert>
 
     <update id="updateHotelPriceMonitor" parameterType="com.zoumh.hotelmonitor.domain.HotelPriceMonitor">
@@ -92,9 +100,14 @@
             <if test="currentPrice != null">current_price = #{currentPrice},</if>
             <if test="currency != null">currency = #{currency},</if>
             <if test="channelUrl != null">channel_url = #{channelUrl},</if>
+            <if test="crawlEnabled != null">crawl_enabled = #{crawlEnabled},</if>
+            <if test="crawlStrategy != null">crawl_strategy = #{crawlStrategy},</if>
+            <if test="crawlConfig != null">crawl_config = #{crawlConfig},</if>
             <if test="status != null">status = #{status},</if>
             <if test="latestChange != null">latest_change = #{latestChange},</if>
             <if test="lastCheckedTime != null">last_checked_time = #{lastCheckedTime},</if>
+            <if test="lastCrawledAt != null">last_crawled_at = #{lastCrawledAt},</if>
+            <if test="lastErrorMessage != null">last_error_message = #{lastErrorMessage},</if>
             <if test="notifyEnabled != null">notify_enabled = #{notifyEnabled},</if>
             remark = #{remark},
             update_by = #{updateBy},
@@ -149,4 +162,11 @@
         values
         (#{monitorId}, #{observedPrice}, #{changeAmount}, #{availability}, #{sourceNote}, #{observedAt}, #{createBy}, #{createTime})
     </insert>
+
+    <select id="selectCrawlEnabledMonitors" resultMap="HotelPriceMonitorResult">
+        <include refid="selectHotelPriceMonitorColumns"/>
+        where crawl_enabled = 'Y'
+          and status in ('tracking', 'alerted')
+        order by last_crawled_at asc, monitor_id asc
+    </select>
 </mapper>

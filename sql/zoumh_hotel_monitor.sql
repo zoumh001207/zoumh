@@ -10,9 +10,14 @@ CREATE TABLE IF NOT EXISTS hotel_price_monitor (
   current_price DECIMAL(10,2) DEFAULT NULL COMMENT '当前价格',
   currency VARCHAR(16) DEFAULT 'CNY' COMMENT '币种',
   channel_url VARCHAR(512) DEFAULT '' COMMENT '渠道链接',
+  crawl_enabled CHAR(1) DEFAULT 'Y' COMMENT '是否启用爬虫',
+  crawl_strategy VARCHAR(32) DEFAULT 'html' COMMENT '抓取策略',
+  crawl_config VARCHAR(2000) DEFAULT NULL COMMENT '抓取配置(JSON)',
   status VARCHAR(16) DEFAULT 'tracking' COMMENT '监控状态',
   latest_change DECIMAL(10,2) DEFAULT 0.00 COMMENT '最近波动',
   last_checked_time DATETIME DEFAULT NULL COMMENT '最近检查时间',
+  last_crawled_at DATETIME DEFAULT NULL COMMENT '最近爬取时间',
+  last_error_message VARCHAR(500) DEFAULT '' COMMENT '最近爬取错误',
   notify_enabled CHAR(1) DEFAULT 'Y' COMMENT '是否提醒',
   remark VARCHAR(500) DEFAULT NULL COMMENT '备注',
   create_by VARCHAR(64) DEFAULT '' COMMENT '创建者',
@@ -21,6 +26,12 @@ CREATE TABLE IF NOT EXISTS hotel_price_monitor (
   update_time DATETIME DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (monitor_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='酒店价格监控任务';
+
+ALTER TABLE hotel_price_monitor ADD COLUMN IF NOT EXISTS crawl_enabled CHAR(1) DEFAULT 'Y' COMMENT '是否启用爬虫';
+ALTER TABLE hotel_price_monitor ADD COLUMN IF NOT EXISTS crawl_strategy VARCHAR(32) DEFAULT 'html' COMMENT '抓取策略';
+ALTER TABLE hotel_price_monitor ADD COLUMN IF NOT EXISTS crawl_config VARCHAR(2000) DEFAULT NULL COMMENT '抓取配置(JSON)';
+ALTER TABLE hotel_price_monitor ADD COLUMN IF NOT EXISTS last_crawled_at DATETIME DEFAULT NULL COMMENT '最近爬取时间';
+ALTER TABLE hotel_price_monitor ADD COLUMN IF NOT EXISTS last_error_message VARCHAR(500) DEFAULT '' COMMENT '最近爬取错误';
 
 CREATE TABLE IF NOT EXISTS hotel_price_history (
   history_id BIGINT NOT NULL AUTO_INCREMENT COMMENT '历史ID',

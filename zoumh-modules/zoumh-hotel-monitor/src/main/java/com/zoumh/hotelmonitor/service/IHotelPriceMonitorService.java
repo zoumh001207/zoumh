@@ -1,5 +1,6 @@
 package com.zoumh.hotelmonitor.service;
 
+import com.zoumh.hotelmonitor.domain.CrawlExecutionResult;
 import com.zoumh.hotelmonitor.domain.HotelPriceHistory;
 import com.zoumh.hotelmonitor.domain.HotelPriceMonitor;
 import java.util.List;
@@ -20,4 +21,8 @@ public interface IHotelPriceMonitorService {
     List<HotelPriceHistory> selectHotelPriceHistoryList(Long monitorId);
 
     Map<String, Object> selectOverview();
+
+    List<HotelPriceMonitor> selectCrawlEnabledMonitors();
+
+    CrawlExecutionResult executeCrawler(Long monitorId, String operator);
 }

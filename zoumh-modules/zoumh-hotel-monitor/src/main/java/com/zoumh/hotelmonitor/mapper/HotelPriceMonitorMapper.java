@@ -28,4 +28,6 @@ public interface HotelPriceMonitorMapper {
     HotelPriceHistory selectLatestHotelPriceHistory(@Param("monitorId") Long monitorId);
 
     int insertHotelPriceHistory(HotelPriceHistory history);
+
+    List<HotelPriceMonitor> selectCrawlEnabledMonitors();
 }

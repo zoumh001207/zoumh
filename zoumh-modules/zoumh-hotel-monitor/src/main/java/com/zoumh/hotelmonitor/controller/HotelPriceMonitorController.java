@@ -7,6 +7,7 @@ import com.ruoyi.common.log.annotation.Log;
 import com.ruoyi.common.log.enums.BusinessType;
 import com.ruoyi.common.security.annotation.RequiresPermissions;
 import com.ruoyi.common.security.utils.SecurityUtils;
+import com.zoumh.hotelmonitor.domain.CrawlExecutionResult;
 import com.zoumh.hotelmonitor.domain.HotelPriceMonitor;
 import com.zoumh.hotelmonitor.service.IHotelPriceMonitorService;
 import jakarta.validation.Valid;
@@ -55,6 +56,16 @@ public class HotelPriceMonitorController extends BaseController {
     @GetMapping("/overview")
     public AjaxResult overview() {
         return success(hotelPriceMonitorService.selectOverview());
+    }
+
+    @RequiresPermissions("hotel:monitor:query")
+    @PostMapping("/{monitorId}/crawl")
+    public AjaxResult crawl(@PathVariable("monitorId") Long monitorId) {
+        CrawlExecutionResult result = hotelPriceMonitorService.executeCrawler(monitorId, SecurityUtils.getUsername());
+        if (!result.isSuccess()) {
+            return AjaxResult.error(result.getErrorMessage());
+        }
+        return success(result);
     }
 
     @RequiresPermissions("hotel:monitor:add")

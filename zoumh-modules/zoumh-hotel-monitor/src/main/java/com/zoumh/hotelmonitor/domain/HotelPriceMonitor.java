@@ -52,6 +52,14 @@ public class HotelPriceMonitor extends BaseEntity {
     @Size(max = 512, message = "链接长度不能超过512个字符")
     private String channelUrl;
 
+    private String crawlEnabled;
+
+    @Size(max = 32, message = "抓取策略长度不能超过32个字符")
+    private String crawlStrategy;
+
+    @Size(max = 2000, message = "抓取配置长度不能超过2000个字符")
+    private String crawlConfig;
+
     @Size(max = 16, message = "状态长度不能超过16个字符")
     private String status;
 
@@ -59,6 +67,11 @@ public class HotelPriceMonitor extends BaseEntity {
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     private Date lastCheckedTime;
+
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private Date lastCrawledAt;
+
+    private String lastErrorMessage;
 
     private String notifyEnabled;
 }

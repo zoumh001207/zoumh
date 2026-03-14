@@ -1,9 +1,11 @@
 package com.zoumh.hotelmonitor.service.impl;
 
 import com.ruoyi.common.core.utils.DateUtils;
+import com.zoumh.hotelmonitor.domain.CrawlExecutionResult;
 import com.zoumh.hotelmonitor.domain.HotelPriceHistory;
 import com.zoumh.hotelmonitor.domain.HotelPriceMonitor;
 import com.zoumh.hotelmonitor.mapper.HotelPriceMonitorMapper;
+import com.zoumh.hotelmonitor.service.HotelPriceCrawlerService;
 import com.zoumh.hotelmonitor.service.IHotelPriceMonitorService;
 import java.math.BigDecimal;
 import java.util.LinkedHashMap;
@@ -16,9 +18,14 @@ import org.springframework.transaction.annotation.Transactional;
 public class HotelPriceMonitorServiceImpl implements IHotelPriceMonitorService {
 
     private final HotelPriceMonitorMapper hotelPriceMonitorMapper;
+    private final HotelPriceCrawlerService hotelPriceCrawlerService;
 
-    public HotelPriceMonitorServiceImpl(HotelPriceMonitorMapper hotelPriceMonitorMapper) {
+    public HotelPriceMonitorServiceImpl(
+        HotelPriceMonitorMapper hotelPriceMonitorMapper,
+        HotelPriceCrawlerService hotelPriceCrawlerService
+    ) {
         this.hotelPriceMonitorMapper = hotelPriceMonitorMapper;
+        this.hotelPriceCrawlerService = hotelPriceCrawlerService;
     }
 
     @Override
@@ -37,7 +44,7 @@ public class HotelPriceMonitorServiceImpl implements IHotelPriceMonitorService {
         normalizeMonitor(monitor);
         monitor.setCreateTime(DateUtils.getNowDate());
         int rows = hotelPriceMonitorMapper.insertHotelPriceMonitor(monitor);
-        appendHistoryIfNeeded(monitor);
+        appendHistory(monitor, "由监控任务自动写入");
         return rows;
     }
 
@@ -60,7 +67,7 @@ public class HotelPriceMonitorServiceImpl implements IHotelPriceMonitorService {
         }
         monitor.setUpdateTime(DateUtils.getNowDate());
         int rows = hotelPriceMonitorMapper.updateHotelPriceMonitor(monitor);
-        appendHistoryIfNeeded(monitor);
+        appendHistory(monitor, "由监控任务自动写入");
         return rows;
     }
 
@@ -86,9 +93,50 @@ public class HotelPriceMonitorServiceImpl implements IHotelPriceMonitorService {
         return result;
     }
 
+    @Override
+    public List<HotelPriceMonitor> selectCrawlEnabledMonitors() {
+        return hotelPriceMonitorMapper.selectCrawlEnabledMonitors();
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public CrawlExecutionResult executeCrawler(Long monitorId, String operator) {
+        HotelPriceMonitor monitor = hotelPriceMonitorMapper.selectHotelPriceMonitorById(monitorId);
+        CrawlExecutionResult result = new CrawlExecutionResult();
+        if (monitor == null) {
+            result.setErrorMessage("监控任务不存在");
+            return result;
+        }
+        result = hotelPriceCrawlerService.crawl(monitor);
+        monitor.setUpdateBy(operator);
+        monitor.setUpdateTime(DateUtils.getNowDate());
+        monitor.setLastCrawledAt(result.getCrawledAt());
+        if (!result.isSuccess()) {
+            monitor.setLastErrorMessage(result.getErrorMessage());
+            hotelPriceMonitorMapper.updateHotelPriceMonitor(monitor);
+            return result;
+        }
+        BigDecimal before = monitor.getCurrentPrice();
+        monitor.setCurrentPrice(result.getPrice());
+        monitor.setCurrency(result.getCurrency());
+        monitor.setStatus(resolveStatus(monitor, result));
+        monitor.setLastCheckedTime(result.getCrawledAt());
+        monitor.setLastErrorMessage("");
+        monitor.setLatestChange(calculateChange(before, result.getPrice()));
+        hotelPriceMonitorMapper.updateHotelPriceMonitor(monitor);
+        appendHistory(monitor, result.getSourceNote());
+        return result;
+    }
+
     private void normalizeMonitor(HotelPriceMonitor monitor) {
         if (monitor.getCurrency() == null || monitor.getCurrency().isBlank()) {
             monitor.setCurrency("CNY");
+        }
+        if (monitor.getCrawlEnabled() == null || monitor.getCrawlEnabled().isBlank()) {
+            monitor.setCrawlEnabled("Y");
+        }
+        if (monitor.getCrawlStrategy() == null || monitor.getCrawlStrategy().isBlank()) {
+            monitor.setCrawlStrategy("html");
         }
         if (monitor.getStatus() == null || monitor.getStatus().isBlank()) {
             monitor.setStatus("tracking");
@@ -98,7 +146,7 @@ public class HotelPriceMonitorServiceImpl implements IHotelPriceMonitorService {
         }
     }
 
-    private void appendHistoryIfNeeded(HotelPriceMonitor monitor) {
+    private void appendHistory(HotelPriceMonitor monitor, String sourceNote) {
         if (monitor.getMonitorId() == null || monitor.getCurrentPrice() == null) {
             return;
         }
@@ -112,10 +160,23 @@ public class HotelPriceMonitorServiceImpl implements IHotelPriceMonitorService {
         history.setAvailability(monitor.getStatus());
         history.setObservedAt(monitor.getLastCheckedTime() != null ? monitor.getLastCheckedTime() : DateUtils.getNowDate());
         history.setChangeAmount(calculateChange(latest == null ? null : latest.getObservedPrice(), monitor.getCurrentPrice()));
-        history.setSourceNote("由监控任务自动写入");
+        history.setSourceNote(sourceNote);
         history.setCreateBy(monitor.getUpdateBy() != null ? monitor.getUpdateBy() : monitor.getCreateBy());
         history.setCreateTime(DateUtils.getNowDate());
         hotelPriceMonitorMapper.insertHotelPriceHistory(history);
+    }
+
+    private String resolveStatus(HotelPriceMonitor monitor, CrawlExecutionResult result) {
+        if ("closed".equalsIgnoreCase(result.getAvailability())) {
+            return "closed";
+        }
+        if (monitor.getTargetPrice() != null && result.getPrice() != null && result.getPrice().compareTo(monitor.getTargetPrice()) <= 0) {
+            return "alerted";
+        }
+        if ("paused".equalsIgnoreCase(monitor.getStatus())) {
+            return "paused";
+        }
+        return "tracking";
     }
 
     private boolean hasPriceChanged(BigDecimal before, BigDecimal after) {

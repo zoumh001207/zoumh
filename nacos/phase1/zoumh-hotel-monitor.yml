@@ -33,3 +33,8 @@ spring:
 mybatis:
   typeAliasesPackage: com.zoumh.hotelmonitor.domain
   mapperLocations: classpath*:mapper/**/*.xml
+
+hotel-monitor:
+  crawl:
+    scheduler-enabled: true
+    fixed-delay-ms: 1800000
