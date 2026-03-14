@@ -14,7 +14,7 @@ spring:
             - ValidateCodeFilter
             - StripPrefix=1
         - id: system
-          uri: lb://system
+          uri: lb://ruoyi-system
           predicates:
             - Path=/system/**
           filters:
@@ -50,7 +50,7 @@ spring:
           filters:
             - StripPrefix=1
         - id: monitor-online
-          uri: lb://system
+          uri: lb://ruoyi-system
           predicates:
             - Path=/monitor/online/**
           filters:
