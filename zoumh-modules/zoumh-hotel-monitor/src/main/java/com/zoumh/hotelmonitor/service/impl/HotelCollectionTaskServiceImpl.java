@@ -112,7 +112,7 @@ public class HotelCollectionTaskServiceImpl implements IHotelCollectionTaskServi
             return hotelCollectionTaskMapper.updateHotelCollectionTask(task);
         } catch (Exception ex) {
             task.setStatus("failed");
-            task.setLastErrorMessage(ex.getMessage());
+            task.setLastErrorMessage(truncateErrorMessage(ex));
             task.setLastCrawledAt(DateUtils.getNowDate());
             task.setUpdateBy(operator);
             task.setUpdateTime(DateUtils.getNowDate());
@@ -140,5 +140,13 @@ public class HotelCollectionTaskServiceImpl implements IHotelCollectionTaskServi
         if (task.getStatus() == null || task.getStatus().isBlank()) {
             task.setStatus("pending");
         }
+    }
+
+    private String truncateErrorMessage(Exception ex) {
+        String message = ex.getMessage();
+        if (message == null || message.isBlank()) {
+            message = ex.getClass().getSimpleName();
+        }
+        return message.length() > 500 ? message.substring(0, 500) : message;
     }
 }
