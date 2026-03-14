@@ -25,6 +25,7 @@ public class HotelCollectionSnapshot extends BaseEntity {
     private String reviewCount;
     private BigDecimal minPrice;
     private String currency;
+    private String previewRoomName;
     private String locationText;
 
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")

@@ -18,6 +18,7 @@
         <result property="reviewCount" column="review_count"/>
         <result property="minPrice" column="min_price"/>
         <result property="currency" column="currency"/>
+        <result property="previewRoomName" column="preview_room_name"/>
         <result property="locationText" column="location_text"/>
         <result property="crawledAt" column="crawled_at"/>
         <result property="rawJson" column="raw_json"/>
@@ -32,12 +33,17 @@
         <result property="cancelPolicy" column="cancel_policy"/>
         <result property="payType" column="pay_type"/>
         <result property="roomQuantity" column="room_quantity"/>
+        <result property="originalPrice" column="original_price"/>
+        <result property="salePrice" column="sale_price"/>
+        <result property="totalPrice" column="total_price"/>
+        <result property="currency" column="currency"/>
+        <result property="priceDescription" column="price_description"/>
         <result property="rawJson" column="raw_json"/>
     </resultMap>
 
     <select id="selectHotelCollectionSnapshotList" resultMap="HotelCollectionSnapshotResult">
         select snapshot_id, task_id, platform, city_name, platform_hotel_id, hotel_name, hotel_type, hotel_url,
-               main_image, star_label, comment_score, review_count, min_price, currency, location_text,
+               main_image, star_label, comment_score, review_count, min_price, currency, preview_room_name, location_text,
                crawled_at, raw_json
         from hotel_collection_snapshot
         where task_id = #{taskId}
@@ -46,10 +52,11 @@
 
     <select id="selectHotelRoomSnapshotList" resultMap="HotelRoomSnapshotResult">
         select room_snapshot_id, snapshot_id, platform_room_id, room_name, bed_info, breakfast_info,
-               cancel_policy, pay_type, room_quantity, raw_json
+               cancel_policy, pay_type, room_quantity, original_price, sale_price, total_price, currency,
+               price_description, raw_json
         from hotel_room_snapshot
         where snapshot_id = #{snapshotId}
-        order by room_snapshot_id asc
+        order by coalesce(sale_price, total_price, original_price) asc, room_snapshot_id asc
     </select>
 
     <delete id="deleteRoomSnapshotsByTaskId">
@@ -71,21 +78,23 @@
     <insert id="insertHotelCollectionSnapshot" parameterType="com.zoumh.hotelmonitor.domain.HotelCollectionSnapshot" useGeneratedKeys="true" keyProperty="snapshotId">
         insert into hotel_collection_snapshot
         (task_id, platform, city_name, platform_hotel_id, hotel_name, hotel_type, hotel_url, main_image,
-         star_label, comment_score, review_count, min_price, currency, location_text, crawled_at, raw_json,
+         star_label, comment_score, review_count, min_price, currency, preview_room_name, location_text, crawled_at, raw_json,
          create_by, create_time, update_by, update_time)
         values
         (#{taskId}, #{platform}, #{cityName}, #{platformHotelId}, #{hotelName}, #{hotelType}, #{hotelUrl}, #{mainImage},
-         #{starLabel}, #{commentScore}, #{reviewCount}, #{minPrice}, #{currency}, #{locationText}, #{crawledAt}, #{rawJson},
+         #{starLabel}, #{commentScore}, #{reviewCount}, #{minPrice}, #{currency}, #{previewRoomName}, #{locationText}, #{crawledAt}, #{rawJson},
          #{createBy}, #{createTime}, #{updateBy}, #{updateTime})
     </insert>
 
     <insert id="insertHotelRoomSnapshot" parameterType="com.zoumh.hotelmonitor.domain.HotelRoomSnapshot" useGeneratedKeys="true" keyProperty="roomSnapshotId">
         insert into hotel_room_snapshot
         (snapshot_id, platform_room_id, room_name, bed_info, breakfast_info, cancel_policy, pay_type,
-         room_quantity, raw_json, create_by, create_time, update_by, update_time)
+         room_quantity, original_price, sale_price, total_price, currency, price_description,
+         raw_json, create_by, create_time, update_by, update_time)
         values
         (#{snapshotId}, #{platformRoomId}, #{roomName}, #{bedInfo}, #{breakfastInfo}, #{cancelPolicy}, #{payType},
-         #{roomQuantity}, #{rawJson}, #{createBy}, #{createTime}, #{updateBy}, #{updateTime})
+         #{roomQuantity}, #{originalPrice}, #{salePrice}, #{totalPrice}, #{currency}, #{priceDescription},
+         #{rawJson}, #{createBy}, #{createTime}, #{updateBy}, #{updateTime})
     </insert>
 
     <select id="countAllSnapshots" resultType="int">select count(1) from hotel_collection_snapshot</select>

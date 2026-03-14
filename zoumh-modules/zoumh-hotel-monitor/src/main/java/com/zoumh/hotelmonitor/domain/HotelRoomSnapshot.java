@@ -1,6 +1,7 @@
 package com.zoumh.hotelmonitor.domain;
 
 import com.ruoyi.common.core.web.domain.BaseEntity;
+import java.math.BigDecimal;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
@@ -17,5 +18,10 @@ public class HotelRoomSnapshot extends BaseEntity {
     private String cancelPolicy;
     private String payType;
     private String roomQuantity;
+    private BigDecimal originalPrice;
+    private BigDecimal salePrice;
+    private BigDecimal totalPrice;
+    private String currency;
+    private String priceDescription;
     private String rawJson;
 }

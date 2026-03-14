@@ -10,7 +10,9 @@ import com.ruoyi.common.security.utils.SecurityUtils;
 import com.zoumh.hotelmonitor.domain.HotelCollectionTask;
 import com.zoumh.hotelmonitor.service.IHotelCollectionTaskService;
 import jakarta.validation.Valid;
+import java.util.Date;
 import java.util.List;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -48,6 +50,16 @@ public class HotelCollectionTaskController extends BaseController {
     @GetMapping("/overview")
     public AjaxResult overview() {
         return success(hotelCollectionTaskService.selectOverview());
+    }
+
+    @RequiresPermissions("hotel:monitor:query")
+    @GetMapping("/location-options")
+    public AjaxResult locationOptions(
+        String cityCode,
+        @DateTimeFormat(pattern = "yyyy-MM-dd") Date checkInDate,
+        @DateTimeFormat(pattern = "yyyy-MM-dd") Date checkOutDate
+    ) {
+        return success(hotelCollectionTaskService.listLocationOptions(cityCode, checkInDate, checkOutDate));
     }
 
     @RequiresPermissions("hotel:monitor:query")

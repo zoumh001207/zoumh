@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS hotel_collection_task (
   platform VARCHAR(32) NOT NULL COMMENT '平台',
   city_name VARCHAR(64) NOT NULL COMMENT '城市名称',
   city_code VARCHAR(32) NOT NULL COMMENT '城市编码',
+  location_keyword VARCHAR(128) DEFAULT '' COMMENT '区县/商圈/地标关键词',
   check_in_date DATE NOT NULL COMMENT '入住日期',
   check_out_date DATE NOT NULL COMMENT '离店日期',
   status VARCHAR(16) DEFAULT 'pending' COMMENT '任务状态',
@@ -101,6 +102,8 @@ CREATE TABLE IF NOT EXISTS hotel_collection_task (
   update_time DATETIME DEFAULT NULL COMMENT '更新时间',
   PRIMARY KEY (task_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='酒店城市采集任务';
+
+ALTER TABLE hotel_collection_task ADD COLUMN IF NOT EXISTS location_keyword VARCHAR(128) DEFAULT '' COMMENT '区县/商圈/地标关键词';
 
 CREATE TABLE IF NOT EXISTS hotel_collection_snapshot (
   snapshot_id BIGINT NOT NULL AUTO_INCREMENT COMMENT '酒店快照ID',
@@ -117,6 +120,7 @@ CREATE TABLE IF NOT EXISTS hotel_collection_snapshot (
   review_count VARCHAR(64) DEFAULT '' COMMENT '点评数',
   min_price DECIMAL(10,2) DEFAULT NULL COMMENT '最低价',
   currency VARCHAR(16) DEFAULT 'CNY' COMMENT '币种',
+  preview_room_name VARCHAR(200) DEFAULT '' COMMENT '预览房型名称',
   location_text VARCHAR(255) DEFAULT '' COMMENT '位置说明',
   crawled_at DATETIME DEFAULT NULL COMMENT '采集时间',
   raw_json LONGTEXT COMMENT '原始JSON',
@@ -128,6 +132,8 @@ CREATE TABLE IF NOT EXISTS hotel_collection_snapshot (
   KEY idx_hotel_collection_task (task_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='酒店采集快照';
 
+ALTER TABLE hotel_collection_snapshot ADD COLUMN IF NOT EXISTS preview_room_name VARCHAR(200) DEFAULT '' COMMENT '预览房型名称';
+
 CREATE TABLE IF NOT EXISTS hotel_room_snapshot (
   room_snapshot_id BIGINT NOT NULL AUTO_INCREMENT COMMENT '房型快照ID',
   snapshot_id BIGINT NOT NULL COMMENT '酒店快照ID',
@@ -138,6 +144,11 @@ CREATE TABLE IF NOT EXISTS hotel_room_snapshot (
   cancel_policy VARCHAR(255) DEFAULT '' COMMENT '取消规则',
   pay_type VARCHAR(64) DEFAULT '' COMMENT '支付方式',
   room_quantity VARCHAR(32) DEFAULT '' COMMENT '房量',
+  original_price DECIMAL(10,2) DEFAULT NULL COMMENT '原价',
+  sale_price DECIMAL(10,2) DEFAULT NULL COMMENT '现价',
+  total_price DECIMAL(10,2) DEFAULT NULL COMMENT '含税总价',
+  currency VARCHAR(16) DEFAULT 'CNY' COMMENT '币种',
+  price_description VARCHAR(255) DEFAULT '' COMMENT '价格说明',
   raw_json LONGTEXT COMMENT '原始JSON',
   create_by VARCHAR(64) DEFAULT '' COMMENT '创建者',
   create_time DATETIME DEFAULT NULL COMMENT '创建时间',
@@ -146,3 +157,9 @@ CREATE TABLE IF NOT EXISTS hotel_room_snapshot (
   PRIMARY KEY (room_snapshot_id),
   KEY idx_room_snapshot_hotel (snapshot_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='酒店房型快照';
+
+ALTER TABLE hotel_room_snapshot ADD COLUMN IF NOT EXISTS original_price DECIMAL(10,2) DEFAULT NULL COMMENT '原价';
+ALTER TABLE hotel_room_snapshot ADD COLUMN IF NOT EXISTS sale_price DECIMAL(10,2) DEFAULT NULL COMMENT '现价';
+ALTER TABLE hotel_room_snapshot ADD COLUMN IF NOT EXISTS total_price DECIMAL(10,2) DEFAULT NULL COMMENT '含税总价';
+ALTER TABLE hotel_room_snapshot ADD COLUMN IF NOT EXISTS currency VARCHAR(16) DEFAULT 'CNY' COMMENT '币种';
+ALTER TABLE hotel_room_snapshot ADD COLUMN IF NOT EXISTS price_description VARCHAR(255) DEFAULT '' COMMENT '价格说明';

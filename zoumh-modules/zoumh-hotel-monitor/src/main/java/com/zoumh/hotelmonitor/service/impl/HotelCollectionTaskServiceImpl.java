@@ -4,11 +4,13 @@ import com.ruoyi.common.core.utils.DateUtils;
 import com.zoumh.hotelmonitor.domain.CtripCityHotelResult;
 import com.zoumh.hotelmonitor.domain.HotelCollectionSnapshot;
 import com.zoumh.hotelmonitor.domain.HotelCollectionTask;
+import com.zoumh.hotelmonitor.domain.HotelLocationOption;
 import com.zoumh.hotelmonitor.domain.HotelRoomSnapshot;
 import com.zoumh.hotelmonitor.mapper.HotelCollectionSnapshotMapper;
 import com.zoumh.hotelmonitor.mapper.HotelCollectionTaskMapper;
 import com.zoumh.hotelmonitor.service.ICtripCityCollectionService;
 import com.zoumh.hotelmonitor.service.IHotelCollectionTaskService;
+import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -134,12 +136,23 @@ public class HotelCollectionTaskServiceImpl implements IHotelCollectionTaskServi
         return result;
     }
 
+    @Override
+    public List<HotelLocationOption> listLocationOptions(String cityCode, Date checkInDate, Date checkOutDate) {
+        if (cityCode == null || cityCode.isBlank()) {
+            return List.of();
+        }
+        return ctripCityCollectionService.listLocationOptions(cityCode, checkInDate, checkOutDate);
+    }
+
     private void normalizeTask(HotelCollectionTask task) {
         if (task.getPlatform() == null || task.getPlatform().isBlank()) {
             task.setPlatform("ctrip");
         }
         if (task.getStatus() == null || task.getStatus().isBlank()) {
             task.setStatus("pending");
+        }
+        if (task.getLocationKeyword() != null) {
+            task.setLocationKeyword(task.getLocationKeyword().trim());
         }
     }
 

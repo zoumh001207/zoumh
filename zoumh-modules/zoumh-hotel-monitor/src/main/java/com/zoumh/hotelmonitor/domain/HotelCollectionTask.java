@@ -31,6 +31,9 @@ public class HotelCollectionTask extends BaseEntity {
     @Size(max = 32, message = "城市编码长度不能超过32个字符")
     private String cityCode;
 
+    @Size(max = 128, message = "位置关键词长度不能超过128个字符")
+    private String locationKeyword;
+
     @NotNull(message = "入住日期不能为空")
     @JsonFormat(pattern = "yyyy-MM-dd")
     private Date checkInDate;

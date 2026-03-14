@@ -9,6 +9,7 @@
         <result property="platform" column="platform"/>
         <result property="cityName" column="city_name"/>
         <result property="cityCode" column="city_code"/>
+        <result property="locationKeyword" column="location_keyword"/>
         <result property="checkInDate" column="check_in_date"/>
         <result property="checkOutDate" column="check_out_date"/>
         <result property="status" column="status"/>
@@ -24,7 +25,7 @@
     </resultMap>
 
     <sql id="baseColumns">
-        select task_id, task_name, platform, city_name, city_code, check_in_date, check_out_date,
+        select task_id, task_name, platform, city_name, city_code, location_keyword, check_in_date, check_out_date,
                status, platform_hotel_count, captured_hotel_count, last_crawled_at, last_error_message,
                remark, create_by, create_time, update_by, update_time
         from hotel_collection_task
@@ -36,6 +37,7 @@
             <if test="taskName != null and taskName != ''">and task_name like concat('%', #{taskName}, '%')</if>
             <if test="platform != null and platform != ''">and platform = #{platform}</if>
             <if test="cityName != null and cityName != ''">and city_name like concat('%', #{cityName}, '%')</if>
+            <if test="locationKeyword != null and locationKeyword != ''">and location_keyword like concat('%', #{locationKeyword}, '%')</if>
             <if test="status != null and status != ''">and status = #{status}</if>
         </where>
         order by update_time desc, create_time desc
@@ -48,10 +50,10 @@
 
     <insert id="insertHotelCollectionTask" parameterType="com.zoumh.hotelmonitor.domain.HotelCollectionTask" useGeneratedKeys="true" keyProperty="taskId">
         insert into hotel_collection_task
-        (task_name, platform, city_name, city_code, check_in_date, check_out_date, status,
+        (task_name, platform, city_name, city_code, location_keyword, check_in_date, check_out_date, status,
          platform_hotel_count, captured_hotel_count, last_crawled_at, last_error_message, remark, create_by, create_time)
         values
-        (#{taskName}, #{platform}, #{cityName}, #{cityCode}, #{checkInDate}, #{checkOutDate}, #{status},
+        (#{taskName}, #{platform}, #{cityName}, #{cityCode}, #{locationKeyword}, #{checkInDate}, #{checkOutDate}, #{status},
          #{platformHotelCount}, #{capturedHotelCount}, #{lastCrawledAt}, #{lastErrorMessage}, #{remark}, #{createBy}, #{createTime})
     </insert>
 
@@ -62,6 +64,7 @@
             <if test="platform != null">platform = #{platform},</if>
             <if test="cityName != null">city_name = #{cityName},</if>
             <if test="cityCode != null">city_code = #{cityCode},</if>
+            <if test="locationKeyword != null">location_keyword = #{locationKeyword},</if>
             <if test="checkInDate != null">check_in_date = #{checkInDate},</if>
             <if test="checkOutDate != null">check_out_date = #{checkOutDate},</if>
             <if test="status != null">status = #{status},</if>

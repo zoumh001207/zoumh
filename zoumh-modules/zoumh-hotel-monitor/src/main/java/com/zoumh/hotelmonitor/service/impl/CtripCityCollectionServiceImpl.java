@@ -6,24 +6,44 @@ import com.ruoyi.common.core.utils.DateUtils;
 import com.zoumh.hotelmonitor.domain.CtripCityHotelResult;
 import com.zoumh.hotelmonitor.domain.HotelCollectionSnapshot;
 import com.zoumh.hotelmonitor.domain.HotelCollectionTask;
+import com.zoumh.hotelmonitor.domain.HotelLocationOption;
 import com.zoumh.hotelmonitor.domain.HotelRoomSnapshot;
 import com.zoumh.hotelmonitor.service.ICtripCityCollectionService;
 import java.math.BigDecimal;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Date;
-import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
 @Service
 public class CtripCityCollectionServiceImpl implements ICtripCityCollectionService {
 
-    private static final Pattern NEXT_DATA_PATTERN = Pattern.compile(
-        "<script>self\\.__next_f\\.push\\(\\[1,\\\"([\\s\\S]*?)\\\"\\]\\)</script>"
+    private static final Pattern HOTEL_TOTAL_PATTERN = Pattern.compile("\"hotelTotalCount\":(\\d+)");
+    private static final Pattern PRICE_PATTERN = Pattern.compile("(CNY|RMB|¥)\\s*(\\d+(?:\\.\\d{1,2})?)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern NUMBER_PATTERN = Pattern.compile("(\\d+(?:\\.\\d{1,2})?)");
+    private static final Set<String> LOCATION_TYPES = Set.of(
+        "COUNTY",
+        "DISTRICT",
+        "COMMERCIAL",
+        "LANDMARK",
+        "SUB_LANDMARK",
+        "AIRPORT_AND_STATION",
+        "SUB_CITY",
+        "CITY"
     );
 
     private final ObjectMapper objectMapper;
@@ -40,206 +60,283 @@ public class CtripCityCollectionServiceImpl implements ICtripCityCollectionServi
 
     @Override
     public CtripCityHotelResult collect(HotelCollectionTask task) {
-        String url = String.format(
-            "https://hotels.ctrip.com/hotels/list?city=%s&checkin=%s&checkout=%s",
-            task.getCityCode(),
-            DateUtils.parseDateToStr("yyyy-MM-dd", task.getCheckInDate()),
-            DateUtils.parseDateToStr("yyyy-MM-dd", task.getCheckOutDate())
-        );
-        String html = webClient.get()
-            .uri(url)
-            .accept(MediaType.TEXT_HTML)
-            .retrieve()
-            .bodyToMono(String.class)
-            .block(Duration.ofSeconds(30));
-        String decoded = decodeNextData(html);
-        JsonNode initList = extractInitListData(decoded);
-        return buildResult(task, initList);
-    }
-
-    private CtripCityHotelResult buildResult(HotelCollectionTask task, JsonNode initList) {
+        String html = fetchTripHtml(task);
+        Document document = Jsoup.parse(html);
         CtripCityHotelResult result = new CtripCityHotelResult();
         Date now = DateUtils.getNowDate();
-        result.setPlatformHotelCount(initList.path("hotelListAddtionInfo").path("hotelTotalCount").asInt(0));
-        for (JsonNode hotelNode : initList.path("hotelList")) {
-            HotelCollectionSnapshot snapshot = new HotelCollectionSnapshot();
-            snapshot.setTaskId(task.getTaskId());
-            snapshot.setPlatform(task.getPlatform());
-            snapshot.setCityName(task.getCityName());
-            snapshot.setPlatformHotelId(text(hotelNode, "hotelInfo.summary.hotelId"));
-            snapshot.setHotelName(text(hotelNode, "hotelInfo.nameInfo.name"));
-            snapshot.setHotelType(text(hotelNode, "hotelInfo.hotelCategory.categoryName"));
-            snapshot.setHotelUrl(buildHotelUrl(snapshot.getPlatformHotelId()));
-            snapshot.setMainImage(text(hotelNode, "hotelInfo.hotelImages.multiImgs.0.url"));
-            snapshot.setStarLabel(starLabel(hotelNode.path("hotelInfo").path("hotelStar")));
-            snapshot.setCommentScore(text(hotelNode, "hotelInfo.commentInfo.commentScore"));
-            snapshot.setReviewCount(text(hotelNode, "hotelInfo.commentInfo.commenterNumber"));
-            snapshot.setMinPrice(findMinPrice(hotelNode));
-            snapshot.setCurrency("CNY");
-            snapshot.setLocationText(locationText(hotelNode));
-            snapshot.setCrawledAt(now);
-            snapshot.setRawJson(hotelNode.toString());
-            snapshot.setRemark(String.valueOf(hotelNode.path("roomInfo").size()));
+        List<Element> cards = document.select(".hotel-card");
+        result.setPlatformHotelCount(extractHotelCount(html, cards.size()));
+        for (Element card : cards) {
+            HotelRoomSnapshot room = buildRoomSnapshot(card);
+            HotelCollectionSnapshot snapshot = buildHotelSnapshot(task, card, room, now);
             result.getHotels().add(snapshot);
-
-            for (JsonNode roomNode : hotelNode.path("roomInfo")) {
-                HotelRoomSnapshot room = new HotelRoomSnapshot();
-                room.setPlatformRoomId(text(roomNode, "summary.roomId"));
-                room.setRoomName(text(roomNode, "summary.saleRoomName"));
-                room.setBedInfo(joinArray(roomNode.path("bedInfo").path("contentList")));
-                room.setBreakfastInfo(extractTags(roomNode, "promotionTags"));
-                room.setCancelPolicy(extractTags(roomNode, "advantageTags"));
-                room.setPayType(payTypeLabel(roomNode.path("payInfo").path("payType").asInt(-1)));
-                room.setRoomQuantity(roomNode.path("summary").path("roomQuantity").asText(""));
-                room.setRawJson(roomNode.toString());
+            if (room != null) {
                 result.getRooms().add(room);
             }
         }
         return result;
     }
 
-    private String decodeNextData(String html) {
-        Matcher matcher = NEXT_DATA_PATTERN.matcher(html);
-        StringBuilder builder = new StringBuilder();
-        while (matcher.find()) {
-            String raw = matcher.group(1).replace("\\\"", "\\u0022");
-            String quoted = "\"" + raw.replace("\"", "\\\"") + "\"";
-            try {
-                builder.append(objectMapper.readValue(quoted, String.class).replace("\\u0022", "\""));
-            } catch (Exception ex) {
-                throw new IllegalStateException("解析携程页面数据失败", ex);
-            }
+    @Override
+    public List<HotelLocationOption> listLocationOptions(String cityCode, Date checkInDate, Date checkOutDate) {
+        String html = fetchCtripHtml(cityCode, checkInDate, checkOutDate);
+        Document document = Jsoup.parse(html);
+        Element script = document.selectFirst("script#webcore_internal");
+        if (script == null) {
+            return List.of();
         }
-        if (builder.length() == 0) {
-            throw new IllegalStateException("未获取到携程酒店列表数据");
-        }
-        return builder.toString();
-    }
-
-    private JsonNode extractInitListData(String decoded) {
-        int marker = decoded.indexOf("\"initListData\":");
-        if (marker < 0) {
-            throw new IllegalStateException("携程首屏数据中未包含酒店列表");
-        }
-        int start = decoded.indexOf('{', marker);
-        int end = findJsonEnd(decoded, start);
+        Map<String, HotelLocationOption> options = new LinkedHashMap<>();
         try {
-            return objectMapper.readTree(decoded.substring(start, end + 1));
+            JsonNode root = objectMapper.readTree(script.html());
+            collectLocationOptions(root, options);
         } catch (Exception ex) {
-            throw new IllegalStateException("解析携程酒店列表 JSON 失败", ex);
+            throw new IllegalStateException("解析位置筛选项失败", ex);
+        }
+        return new ArrayList<>(options.values());
+    }
+
+    private HotelCollectionSnapshot buildHotelSnapshot(HotelCollectionTask task, Element card, HotelRoomSnapshot room, Date now) {
+        HotelCollectionSnapshot snapshot = new HotelCollectionSnapshot();
+        snapshot.setTaskId(task.getTaskId());
+        snapshot.setPlatform(task.getPlatform());
+        snapshot.setCityName(task.getCityName());
+        String hotelId = firstNonBlank(card.id(), attr(card.selectFirst(".right-card"), "data-offline-hotelid"));
+        snapshot.setPlatformHotelId(hotelId);
+        snapshot.setHotelName(text(card, ".hotelName"));
+        snapshot.setHotelType("");
+        snapshot.setHotelUrl(buildHotelUrl(hotelId));
+        snapshot.setMainImage(attr(card.selectFirst(".m-lazyImg__img"), "src"));
+        snapshot.setStarLabel(buildStarLabel(card));
+        snapshot.setCommentScore(text(card, ".comment-score .score"));
+        snapshot.setReviewCount(text(card, ".comment-num"));
+        snapshot.setMinPrice(extractDisplayPrice(room));
+        snapshot.setCurrency(room != null && room.getCurrency() != null && !room.getCurrency().isBlank() ? room.getCurrency() : "CNY");
+        snapshot.setPreviewRoomName(room == null ? "" : room.getRoomName());
+        snapshot.setLocationText(text(card, ".position-desc"));
+        snapshot.setCrawledAt(now);
+        snapshot.setRawJson(card.outerHtml());
+        snapshot.setRemark(room == null ? "0" : "1");
+        return snapshot;
+    }
+
+    private HotelRoomSnapshot buildRoomSnapshot(Element card) {
+        String roomName = text(card, ".room-name");
+        String saleText = text(card, ".room-price .sale");
+        String originalText = text(card, ".room-price .delete");
+        String totalText = text(card, ".room-price .price-explain");
+        if (roomName.isBlank() && saleText.isBlank() && originalText.isBlank() && totalText.isBlank()) {
+            return null;
+        }
+        HotelRoomSnapshot room = new HotelRoomSnapshot();
+        room.setPlatformRoomId("");
+        room.setRoomName(roomName);
+        room.setBedInfo(extractBedInfo(card));
+        room.setBreakfastInfo(joinTagsByKeywords(card, "早餐", "早"));
+        room.setCancelPolicy(joinTagsByKeywords(card, "取消", "退"));
+        room.setPayType(joinTagsByKeywords(card, "到店付", "在线付", "预付"));
+        room.setRoomQuantity("");
+        room.setOriginalPrice(parsePriceValue(originalText));
+        room.setSalePrice(parsePriceValue(saleText));
+        room.setTotalPrice(parsePriceValue(totalText));
+        room.setCurrency(firstNonBlank(parseCurrency(saleText), parseCurrency(originalText), parseCurrency(totalText), "CNY"));
+        room.setPriceDescription(totalText);
+        room.setRawJson(card.selectFirst(".room-info") == null ? card.outerHtml() : card.selectFirst(".room-info").outerHtml());
+        return room;
+    }
+
+    private void collectLocationOptions(JsonNode node, Map<String, HotelLocationOption> options) {
+        if (node == null || node.isNull()) {
+            return;
+        }
+        if (node.isObject()) {
+            JsonNode data = node.path("data");
+            JsonNode operation = node.path("operation");
+            String type = extractLocationType(operation.path("selfMutexIds"));
+            String title = data.path("title").asText("");
+            if (!type.isBlank() && !title.isBlank()) {
+                String key = type + ":" + title;
+                options.putIfAbsent(key, new HotelLocationOption(title, title, toLocationLabel(type)));
+            }
+            node.fields().forEachRemaining(entry -> collectLocationOptions(entry.getValue(), options));
+            return;
+        }
+        if (node.isArray()) {
+            node.forEach(item -> collectLocationOptions(item, options));
         }
     }
 
-    private int findJsonEnd(String text, int start) {
-        int depth = 0;
-        for (int i = start; i < text.length(); i++) {
-            char ch = text.charAt(i);
-            if (ch == '{') {
-                depth++;
-            } else if (ch == '}') {
-                depth--;
-                if (depth == 0) {
-                    return i;
+    private String fetchTripHtml(HotelCollectionTask task) {
+        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl("https://www.trip.com/hotels/list")
+            .queryParam("city", task.getCityCode())
+            .queryParam("checkin", DateUtils.parseDateToStr("yyyy-MM-dd", defaultCheckIn(task.getCheckInDate())))
+            .queryParam("checkout", DateUtils.parseDateToStr("yyyy-MM-dd", defaultCheckOut(task.getCheckOutDate(), task.getCheckInDate())))
+            .queryParam("curr", "CNY");
+        if (task.getLocationKeyword() != null && !task.getLocationKeyword().isBlank()) {
+            builder.queryParam("searchWord", task.getLocationKeyword().trim());
+        }
+        return webClient.get()
+            .uri(builder.build(true).toUri())
+            .accept(MediaType.TEXT_HTML)
+            .retrieve()
+            .bodyToMono(String.class)
+            .block(Duration.ofSeconds(30));
+    }
+
+    private String fetchCtripHtml(String cityCode, Date checkInDate, Date checkOutDate) {
+        return webClient.get()
+            .uri(UriComponentsBuilder.fromHttpUrl("https://hotels.ctrip.com/hotels/list")
+                .queryParam("city", cityCode)
+                .queryParam("checkin", DateUtils.parseDateToStr("yyyy-MM-dd", defaultCheckIn(checkInDate)))
+                .queryParam("checkout", DateUtils.parseDateToStr("yyyy-MM-dd", defaultCheckOut(checkOutDate, checkInDate)))
+                .build(true)
+                .toUri())
+            .accept(MediaType.TEXT_HTML)
+            .retrieve()
+            .bodyToMono(String.class)
+            .block(Duration.ofSeconds(30));
+    }
+
+    private int extractHotelCount(String html, int fallback) {
+        Matcher matcher = HOTEL_TOTAL_PATTERN.matcher(html);
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1));
+        }
+        return fallback;
+    }
+
+    private BigDecimal extractDisplayPrice(HotelRoomSnapshot room) {
+        if (room == null) {
+            return null;
+        }
+        if (room.getSalePrice() != null) {
+            return room.getSalePrice();
+        }
+        if (room.getTotalPrice() != null) {
+            return room.getTotalPrice();
+        }
+        return room.getOriginalPrice();
+    }
+
+    private String buildStarLabel(Element card) {
+        int stars = card.select(".hotelStar .star-icon").size();
+        return stars > 0 ? stars + "星" : "";
+    }
+
+    private String extractBedInfo(Element card) {
+        Set<String> values = new LinkedHashSet<>();
+        for (Element element : card.select(".room-bedInfo [aria-label], .room-bedInfo [title]")) {
+            String text = firstNonBlank(element.attr("aria-label"), element.attr("title"), element.text());
+            if (!text.isBlank()) {
+                values.add(text);
+            }
+        }
+        String directText = card.select(".room-bedInfo").text();
+        if (!directText.isBlank()) {
+            values.add(directText);
+        }
+        return String.join(" / ", values);
+    }
+
+    private String joinTagsByKeywords(Element card, String... keywords) {
+        Set<String> values = new LinkedHashSet<>();
+        for (Element element : card.select(".room-advantageTag .hotel-tag-content, .price-tags .hotel-tag-content")) {
+            String text = element.text().trim();
+            if (text.isBlank()) {
+                continue;
+            }
+            for (String keyword : keywords) {
+                if (text.contains(keyword)) {
+                    values.add(text);
+                    break;
                 }
             }
         }
-        throw new IllegalStateException("未找到携程酒店列表 JSON 结束位置");
+        return String.join(" / ", values);
     }
 
-    private BigDecimal findMinPrice(JsonNode node) {
-        Iterator<String> names = node.fieldNames();
-        while (names.hasNext()) {
-            String name = names.next();
-            JsonNode child = node.get(name);
-            if (name.toLowerCase().contains("price") && child.isValueNode()) {
-                String value = child.asText("");
-                if (value.matches("\\d+(\\.\\d+)?")) {
-                    return new BigDecimal(value);
-                }
-            }
-            if (child != null && child.isContainerNode()) {
-                BigDecimal nested = findMinPrice(child);
-                if (nested != null) {
-                    return nested;
-                }
-            }
+    private BigDecimal parsePriceValue(String text) {
+        if (text == null || text.isBlank()) {
+            return null;
+        }
+        Matcher matcher = PRICE_PATTERN.matcher(text);
+        if (matcher.find()) {
+            return new BigDecimal(matcher.group(2));
+        }
+        matcher = NUMBER_PATTERN.matcher(text.replace(",", ""));
+        if (matcher.find()) {
+            return new BigDecimal(matcher.group(1));
         }
         return null;
     }
 
-    private String text(JsonNode node, String path) {
-        String[] parts = path.split("\\.");
-        JsonNode current = node;
-        for (String part : parts) {
-            current = part.matches("\\d+") ? current.path(Integer.parseInt(part)) : current.path(part);
-        }
-        return current.isMissingNode() || current.isNull() ? "" : current.asText("");
-    }
-
-    private String starLabel(JsonNode node) {
-        int star = node.path("star").asInt(0);
-        return star > 0 ? star + "星" : "";
-    }
-
-    private String locationText(JsonNode hotelNode) {
-        String[] candidates = {
-            text(hotelNode, "hotelInfo.positionInfo.positionName"),
-            text(hotelNode, "hotelInfo.positionInfo.location"),
-            text(hotelNode, "hotelInfo.commentInfo.oneSentenceComment.0.tagTitle")
-        };
-        StringBuilder builder = new StringBuilder();
-        for (String candidate : candidates) {
-            if (!candidate.isBlank()) {
-                if (builder.length() > 0) {
-                    builder.append(" / ");
-                }
-                builder.append(candidate);
-            }
-        }
-        return builder.toString();
-    }
-
-    private String joinArray(JsonNode arrayNode) {
-        if (!arrayNode.isArray()) {
+    private String parseCurrency(String text) {
+        if (text == null || text.isBlank()) {
             return "";
         }
-        StringBuilder builder = new StringBuilder();
-        for (JsonNode item : arrayNode) {
-            if (builder.length() > 0) {
-                builder.append(" / ");
-            }
-            builder.append(item.asText(""));
+        Matcher matcher = PRICE_PATTERN.matcher(text);
+        if (matcher.find()) {
+            String raw = matcher.group(1).toUpperCase();
+            return "¥".equals(raw) ? "CNY" : raw;
         }
-        return builder.toString();
-    }
-
-    private String extractTags(JsonNode roomNode, String field) {
-        JsonNode tags = roomNode.path("roomTags").path(field);
-        if (!tags.isArray()) {
-            return "";
-        }
-        StringBuilder builder = new StringBuilder();
-        for (JsonNode item : tags) {
-            String title = item.path("tagTitle").asText("");
-            if (!title.isBlank()) {
-                if (builder.length() > 0) {
-                    builder.append(" / ");
-                }
-                builder.append(title);
-            }
-        }
-        return builder.toString();
-    }
-
-    private String payTypeLabel(int payType) {
-        return switch (payType) {
-            case 1 -> "在线付";
-            case 2 -> "到店付";
-            default -> "";
-        };
+        return "";
     }
 
     private String buildHotelUrl(String hotelId) {
         return hotelId == null || hotelId.isBlank() ? "" : "https://hotels.ctrip.com/hotels/detail/?hotelId=" + hotelId;
+    }
+
+    private String extractLocationType(JsonNode typeArray) {
+        if (!typeArray.isArray()) {
+            return "";
+        }
+        for (JsonNode item : typeArray) {
+            String value = item.asText("");
+            if (LOCATION_TYPES.contains(value)) {
+                return value;
+            }
+        }
+        return "";
+    }
+
+    private String toLocationLabel(String type) {
+        return switch (type) {
+            case "COUNTY" -> "区县";
+            case "DISTRICT" -> "商圈/地标";
+            case "COMMERCIAL" -> "商圈";
+            case "LANDMARK", "SUB_LANDMARK" -> "地标";
+            case "AIRPORT_AND_STATION" -> "机场车站";
+            case "SUB_CITY" -> "片区";
+            case "CITY" -> "城市";
+            default -> "位置";
+        };
+    }
+
+    private Date defaultCheckIn(Date checkInDate) {
+        return checkInDate == null ? DateUtils.addDays(DateUtils.getNowDate(), 1) : checkInDate;
+    }
+
+    private Date defaultCheckOut(Date checkOutDate, Date checkInDate) {
+        if (checkOutDate != null) {
+            return checkOutDate;
+        }
+        return DateUtils.addDays(defaultCheckIn(checkInDate), 1);
+    }
+
+    private String text(Element root, String selector) {
+        Element element = root.selectFirst(selector);
+        return element == null ? "" : element.text().trim();
+    }
+
+    private String attr(Element element, String attrName) {
+        return element == null ? "" : element.attr(attrName).trim();
+    }
+
+    private String firstNonBlank(String... values) {
+        for (String value : values) {
+            if (value != null && !value.isBlank()) {
+                return value.trim();
+            }
+        }
+        return "";
     }
 }
