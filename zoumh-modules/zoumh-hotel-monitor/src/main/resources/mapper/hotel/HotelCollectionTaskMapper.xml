@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zoumh.hotelmonitor.mapper.HotelCollectionTaskMapper">
+    <resultMap id="HotelCollectionTaskResult" type="com.zoumh.hotelmonitor.domain.HotelCollectionTask">
+        <id property="taskId" column="task_id"/>
+        <result property="taskName" column="task_name"/>
+        <result property="platform" column="platform"/>
+        <result property="cityName" column="city_name"/>
+        <result property="cityCode" column="city_code"/>
+        <result property="checkInDate" column="check_in_date"/>
+        <result property="checkOutDate" column="check_out_date"/>
+        <result property="status" column="status"/>
+        <result property="platformHotelCount" column="platform_hotel_count"/>
+        <result property="capturedHotelCount" column="captured_hotel_count"/>
+        <result property="lastCrawledAt" column="last_crawled_at"/>
+        <result property="lastErrorMessage" column="last_error_message"/>
+        <result property="remark" column="remark"/>
+        <result property="createBy" column="create_by"/>
+        <result property="createTime" column="create_time"/>
+        <result property="updateBy" column="update_by"/>
+        <result property="updateTime" column="update_time"/>
+    </resultMap>
+
+    <sql id="baseColumns">
+        select task_id, task_name, platform, city_name, city_code, check_in_date, check_out_date,
+               status, platform_hotel_count, captured_hotel_count, last_crawled_at, last_error_message,
+               remark, create_by, create_time, update_by, update_time
+        from hotel_collection_task
+    </sql>
+
+    <select id="selectHotelCollectionTaskList" resultMap="HotelCollectionTaskResult">
+        <include refid="baseColumns"/>
+        <where>
+            <if test="taskName != null and taskName != ''">and task_name like concat('%', #{taskName}, '%')</if>
+            <if test="platform != null and platform != ''">and platform = #{platform}</if>
+            <if test="cityName != null and cityName != ''">and city_name like concat('%', #{cityName}, '%')</if>
+            <if test="status != null and status != ''">and status = #{status}</if>
+        </where>
+        order by update_time desc, create_time desc
+    </select>
+
+    <select id="selectHotelCollectionTaskById" resultMap="HotelCollectionTaskResult">
+        <include refid="baseColumns"/>
+        where task_id = #{taskId}
+    </select>
+
+    <insert id="insertHotelCollectionTask" parameterType="com.zoumh.hotelmonitor.domain.HotelCollectionTask" useGeneratedKeys="true" keyProperty="taskId">
+        insert into hotel_collection_task
+        (task_name, platform, city_name, city_code, check_in_date, check_out_date, status,
+         platform_hotel_count, captured_hotel_count, last_crawled_at, last_error_message, remark, create_by, create_time)
+        values
+        (#{taskName}, #{platform}, #{cityName}, #{cityCode}, #{checkInDate}, #{checkOutDate}, #{status},
+         #{platformHotelCount}, #{capturedHotelCount}, #{lastCrawledAt}, #{lastErrorMessage}, #{remark}, #{createBy}, #{createTime})
+    </insert>
+
+    <update id="updateHotelCollectionTask" parameterType="com.zoumh.hotelmonitor.domain.HotelCollectionTask">
+        update hotel_collection_task
+        <set>
+            <if test="taskName != null">task_name = #{taskName},</if>
+            <if test="platform != null">platform = #{platform},</if>
+            <if test="cityName != null">city_name = #{cityName},</if>
+            <if test="cityCode != null">city_code = #{cityCode},</if>
+            <if test="checkInDate != null">check_in_date = #{checkInDate},</if>
+            <if test="checkOutDate != null">check_out_date = #{checkOutDate},</if>
+            <if test="status != null">status = #{status},</if>
+            <if test="platformHotelCount != null">platform_hotel_count = #{platformHotelCount},</if>
+            <if test="capturedHotelCount != null">captured_hotel_count = #{capturedHotelCount},</if>
+            <if test="lastCrawledAt != null">last_crawled_at = #{lastCrawledAt},</if>
+            <if test="lastErrorMessage != null">last_error_message = #{lastErrorMessage},</if>
+            remark = #{remark},
+            update_by = #{updateBy},
+            update_time = #{updateTime}
+        </set>
+        where task_id = #{taskId}
+    </update>
+
+    <delete id="deleteHotelCollectionTaskByIds">
+        delete from hotel_collection_task where task_id in
+        <foreach collection="taskIds" item="taskId" open="(" separator="," close=")">
+            #{taskId}
+        </foreach>
+    </delete>
+
+    <select id="countAllTasks" resultType="int">select count(1) from hotel_collection_task</select>
+    <select id="countByStatus" resultType="int">select count(1) from hotel_collection_task where status = #{status}</select>
+</mapper>

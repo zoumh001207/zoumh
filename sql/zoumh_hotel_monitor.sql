@@ -80,3 +80,69 @@ INSERT INTO sys_role_menu (role_id, menu_id)
 SELECT 1, menu_id
 FROM sys_menu
 WHERE menu_id BETWEEN @hotel_root AND @hotel_remove;
+
+CREATE TABLE IF NOT EXISTS hotel_collection_task (
+  task_id BIGINT NOT NULL AUTO_INCREMENT COMMENT '任务ID',
+  task_name VARCHAR(128) NOT NULL COMMENT '任务名称',
+  platform VARCHAR(32) NOT NULL COMMENT '平台',
+  city_name VARCHAR(64) NOT NULL COMMENT '城市名称',
+  city_code VARCHAR(32) NOT NULL COMMENT '城市编码',
+  check_in_date DATE NOT NULL COMMENT '入住日期',
+  check_out_date DATE NOT NULL COMMENT '离店日期',
+  status VARCHAR(16) DEFAULT 'pending' COMMENT '任务状态',
+  platform_hotel_count INT DEFAULT 0 COMMENT '平台酒店总数',
+  captured_hotel_count INT DEFAULT 0 COMMENT '已采集酒店数',
+  last_crawled_at DATETIME DEFAULT NULL COMMENT '最近采集时间',
+  last_error_message VARCHAR(500) DEFAULT '' COMMENT '最近错误信息',
+  remark VARCHAR(500) DEFAULT NULL COMMENT '备注',
+  create_by VARCHAR(64) DEFAULT '' COMMENT '创建者',
+  create_time DATETIME DEFAULT NULL COMMENT '创建时间',
+  update_by VARCHAR(64) DEFAULT '' COMMENT '更新者',
+  update_time DATETIME DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (task_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='酒店城市采集任务';
+
+CREATE TABLE IF NOT EXISTS hotel_collection_snapshot (
+  snapshot_id BIGINT NOT NULL AUTO_INCREMENT COMMENT '酒店快照ID',
+  task_id BIGINT NOT NULL COMMENT '任务ID',
+  platform VARCHAR(32) NOT NULL COMMENT '平台',
+  city_name VARCHAR(64) NOT NULL COMMENT '城市名称',
+  platform_hotel_id VARCHAR(64) NOT NULL COMMENT '平台酒店ID',
+  hotel_name VARCHAR(200) NOT NULL COMMENT '酒店名称',
+  hotel_type VARCHAR(64) DEFAULT '' COMMENT '酒店类型',
+  hotel_url VARCHAR(500) DEFAULT '' COMMENT '酒店链接',
+  main_image VARCHAR(500) DEFAULT '' COMMENT '主图',
+  star_label VARCHAR(32) DEFAULT '' COMMENT '星级',
+  comment_score VARCHAR(32) DEFAULT '' COMMENT '评分',
+  review_count VARCHAR(64) DEFAULT '' COMMENT '点评数',
+  min_price DECIMAL(10,2) DEFAULT NULL COMMENT '最低价',
+  currency VARCHAR(16) DEFAULT 'CNY' COMMENT '币种',
+  location_text VARCHAR(255) DEFAULT '' COMMENT '位置说明',
+  crawled_at DATETIME DEFAULT NULL COMMENT '采集时间',
+  raw_json LONGTEXT COMMENT '原始JSON',
+  create_by VARCHAR(64) DEFAULT '' COMMENT '创建者',
+  create_time DATETIME DEFAULT NULL COMMENT '创建时间',
+  update_by VARCHAR(64) DEFAULT '' COMMENT '更新者',
+  update_time DATETIME DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (snapshot_id),
+  KEY idx_hotel_collection_task (task_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='酒店采集快照';
+
+CREATE TABLE IF NOT EXISTS hotel_room_snapshot (
+  room_snapshot_id BIGINT NOT NULL AUTO_INCREMENT COMMENT '房型快照ID',
+  snapshot_id BIGINT NOT NULL COMMENT '酒店快照ID',
+  platform_room_id VARCHAR(64) DEFAULT '' COMMENT '平台房型ID',
+  room_name VARCHAR(200) NOT NULL COMMENT '房型名称',
+  bed_info VARCHAR(255) DEFAULT '' COMMENT '床型信息',
+  breakfast_info VARCHAR(255) DEFAULT '' COMMENT '早餐信息',
+  cancel_policy VARCHAR(255) DEFAULT '' COMMENT '取消规则',
+  pay_type VARCHAR(64) DEFAULT '' COMMENT '支付方式',
+  room_quantity VARCHAR(32) DEFAULT '' COMMENT '房量',
+  raw_json LONGTEXT COMMENT '原始JSON',
+  create_by VARCHAR(64) DEFAULT '' COMMENT '创建者',
+  create_time DATETIME DEFAULT NULL COMMENT '创建时间',
+  update_by VARCHAR(64) DEFAULT '' COMMENT '更新者',
+  update_time DATETIME DEFAULT NULL COMMENT '更新时间',
+  PRIMARY KEY (room_snapshot_id),
+  KEY idx_room_snapshot_hotel (snapshot_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='酒店房型快照';
