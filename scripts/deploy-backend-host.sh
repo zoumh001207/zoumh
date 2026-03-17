@@ -28,7 +28,7 @@ JAVA_OPTS_GATEWAY="${JAVA_OPTS_GATEWAY:--Xms256m -Xmx512m -XX:MaxDirectMemorySiz
 mkdir -p "${PACKAGE_DIR}" "${LOG_DIR}"
 
 ensure_docker_shell_env() {
-  local docker_bin docker_dir env_file helper_file
+  local docker_bin docker_dir env_file helper_file bashrc_snippet
   docker_bin="$(command -v docker || true)"
   if [[ -z "${docker_bin}" ]]; then
     echo "docker command not found in deploy environment" >&2
@@ -38,6 +38,7 @@ ensure_docker_shell_env() {
   docker_dir="$(dirname "${docker_bin}")"
   env_file="/etc/profile.d/zoumh-docker.sh"
   helper_file="/zoumh/sh/docker.sh"
+  bashrc_snippet="# zoumh docker env"
 
   mkdir -p /etc/profile.d /zoumh/sh
   ln -sf "${docker_bin}" /usr/local/bin/docker || true
@@ -51,6 +52,30 @@ case ":\$PATH:" in
 esac
 EOF
   chmod 644 "${env_file}"
+
+  if ! grep -Fq "${bashrc_snippet}" /etc/bashrc 2>/dev/null; then
+    cat >> /etc/bashrc <<EOF
+
+${bashrc_snippet}
+if [ -f /etc/profile.d/zoumh-docker.sh ]; then
+  . /etc/profile.d/zoumh-docker.sh
+fi
+EOF
+  fi
+
+  mkdir -p /root
+  for shell_file in /root/.bashrc /root/.bash_profile; do
+    touch "${shell_file}"
+    if ! grep -Fq "${bashrc_snippet}" "${shell_file}"; then
+      cat >> "${shell_file}" <<EOF
+
+${bashrc_snippet}
+if [ -f /etc/profile.d/zoumh-docker.sh ]; then
+  . /etc/profile.d/zoumh-docker.sh
+fi
+EOF
+    fi
+  done
 
   cat > "${helper_file}" <<EOF
 #!/usr/bin/env bash
