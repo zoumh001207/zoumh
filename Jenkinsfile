@@ -79,7 +79,6 @@ pipeline {
                             cp -f ruoyi-auth/target/*.jar "${DEPLOY_DIR}/packages/" || true
                             cp -f ruoyi-modules/ruoyi-system/target/*.jar "${DEPLOY_DIR}/packages/" || true
                             cp -f ruoyi-modules/ruoyi-gen/target/*.jar "${DEPLOY_DIR}/packages/" || true
-                            cp -f ruoyi-modules/ruoyi-job/target/*.jar "${DEPLOY_DIR}/packages/" || true
                             cp -f ruoyi-modules/ruoyi-file/target/*.jar "${DEPLOY_DIR}/packages/" || true
                             cp -f zoumh-modules/zoumh-tools/target/*.jar "${DEPLOY_DIR}/packages/" || true
                             cp -f zoumh-modules/zoumh-hotel-monitor/target/*.jar "${DEPLOY_DIR}/packages/" || true
@@ -98,7 +97,6 @@ pipeline {
                                 scp -o StrictHostKeyChecking=no ruoyi-auth/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
                                 scp -o StrictHostKeyChecking=no ruoyi-modules/ruoyi-system/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
                                 scp -o StrictHostKeyChecking=no ruoyi-modules/ruoyi-gen/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
-                                scp -o StrictHostKeyChecking=no ruoyi-modules/ruoyi-job/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
                                 scp -o StrictHostKeyChecking=no ruoyi-modules/ruoyi-file/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
                                 scp -o StrictHostKeyChecking=no zoumh-modules/zoumh-tools/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
                                 scp -o StrictHostKeyChecking=no zoumh-modules/zoumh-hotel-monitor/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true

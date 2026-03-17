@@ -25,12 +25,6 @@ spring:
             - Path=/code/**
           filters:
             - StripPrefix=1
-        - id: job
-          uri: lb://ruoyi-job
-          predicates:
-            - Path=/schedule/**
-          filters:
-            - StripPrefix=1
         - id: file
           uri: lb://ruoyi-file
           predicates:

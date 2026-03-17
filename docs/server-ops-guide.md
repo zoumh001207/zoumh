@@ -30,7 +30,6 @@
 | `ruoyi-system` | `512m` | 核心业务模块 |
 | `ruoyi-auth` | `288m` | 登录认证服务 |
 | `ruoyi-gen` | `288m` | 代码生成模块 |
-| `ruoyi-job` | `288m` | 定时任务模块 |
 | `ruoyi-file` | `288m` | 文件服务 |
 | `zoumh-tools` | `288m` | 自定义工具模块 |
 | `zoumh-hotel-monitor` | `352m` | 酒店价格监控模块 |
@@ -61,7 +60,8 @@
    - `pids-limit`
    - 日志轮转
 6. `docker-compose` 中的 `mysql`、`redis`、`nacos`、`nginx` 已补充资源限制配置。
-7. `redis` 已增加：
+7. `ruoyi-job` 模块已从代码与默认部署中移除。
+8. `redis` 已增加：
    - `maxmemory 128mb`
    - `maxmemory-policy allkeys-lru`
 
