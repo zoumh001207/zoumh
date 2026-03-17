@@ -12,6 +12,7 @@ pipeline {
         booleanParam(name: 'DEPLOY', defaultValue: true, description: 'Deploy to remote server')
         choice(name: 'DEPLOY_MODE', choices: ['local', 'ssh'], description: 'Deploy to local Jenkins server or remote SSH host')
         string(name: 'DEPLOY_DIR', defaultValue: '/zoumh/java/zmh/backend', description: 'Remote backend artifact directory')
+        string(name: 'ROOT_DOC_PATH', defaultValue: '/zoumh/java/zmh/README-运维.md', description: 'Root ops readme path')
         string(name: 'DOCS_DIR', defaultValue: '/zoumh/java/zmh/backend/docs', description: 'Remote backend docs directory')
         string(name: 'LOG_DIR', defaultValue: '/zoumh/java/zmh/backend/logs', description: 'Remote backend log directory')
         string(name: 'DEPLOY_SCRIPT_DIR', defaultValue: '/zoumh/java/zmh/backend/bin', description: 'Remote backend script directory')
@@ -84,6 +85,7 @@ pipeline {
                             cp -f zoumh-modules/zoumh-hotel-monitor/target/*.jar "${DEPLOY_DIR}/packages/" || true
                             cp -f scripts/deploy-backend-host.sh "${DEPLOY_SCRIPT_DIR}/deploy-backend-host.sh"
                             cp -f docs/server-ops-guide.md "${DOCS_DIR}/server-ops-guide.md"
+                            cp -f docs/server-ops-guide.md "${ROOT_DOC_PATH}"
                             chmod +x "${DEPLOY_SCRIPT_DIR}/deploy-backend-host.sh"
                             PACKAGE_DIR="${DEPLOY_DIR}/packages" LOG_DIR="${LOG_DIR}" POST_DEPLOY_CMD="${POST_DEPLOY_CMD}" "${DEPLOY_SCRIPT_DIR}/deploy-backend-host.sh"
                         '''
@@ -102,6 +104,7 @@ pipeline {
                                 scp -o StrictHostKeyChecking=no zoumh-modules/zoumh-hotel-monitor/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
                                 scp -o StrictHostKeyChecking=no scripts/deploy-backend-host.sh ${SSH_USER}@${SSH_HOST}:${DEPLOY_SCRIPT_DIR}/deploy-backend-host.sh
                                 scp -o StrictHostKeyChecking=no docs/server-ops-guide.md ${SSH_USER}@${SSH_HOST}:${DOCS_DIR}/server-ops-guide.md
+                                scp -o StrictHostKeyChecking=no docs/server-ops-guide.md ${SSH_USER}@${SSH_HOST}:'${ROOT_DOC_PATH}'
                                 ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_HOST} "chmod +x ${DEPLOY_SCRIPT_DIR}/deploy-backend-host.sh && PACKAGE_DIR=${DEPLOY_DIR}/packages LOG_DIR=${LOG_DIR} POST_DEPLOY_CMD='${POST_DEPLOY_CMD}' ${DEPLOY_SCRIPT_DIR}/deploy-backend-host.sh"
                             '''
                         }
