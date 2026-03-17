@@ -28,21 +28,77 @@ JAVA_OPTS_GATEWAY="${JAVA_OPTS_GATEWAY:--Xms256m -Xmx512m -XX:MaxDirectMemorySiz
 mkdir -p "${PACKAGE_DIR}" "${LOG_DIR}"
 
 ensure_docker_shell_env() {
-  local docker_bin docker_dir env_file helper_file bashrc_snippet
-  docker_bin="$(command -v docker || true)"
-  if [[ -z "${docker_bin}" ]]; then
+  local docker_cmd docker_bin docker_dir env_file helper_file bashrc_snippet
+  docker_cmd="$(command -v docker || true)"
+  if [[ -z "${docker_cmd}" ]]; then
     echo "docker command not found in deploy environment" >&2
     exit 1
+  fi
+
+  docker_bin="$(readlink -f "${docker_cmd}" 2>/dev/null || true)"
+  if [[ -z "${docker_bin}" || ! -x "${docker_bin}" ]]; then
+    if [[ -x /usr/bin/docker ]]; then
+      docker_bin="/usr/bin/docker"
+    else
+      docker_bin="${docker_cmd}"
+    fi
   fi
 
   docker_dir="$(dirname "${docker_bin}")"
   env_file="/etc/profile.d/zoumh-docker.sh"
   helper_file="/zoumh/sh/docker.sh"
-  bashrc_snippet="# zoumh docker env"
+  bashrc_snippet="# >>> zoumh docker env >>>"
 
   mkdir -p /etc/profile.d /zoumh/sh
+  if [[ -L /usr/local/bin/docker && ! -e /usr/local/bin/docker ]]; then
+    rm -f /usr/local/bin/docker
+  fi
   ln -sf "${docker_bin}" /usr/local/bin/docker || true
   ln -sf "${docker_bin}" /usr/bin/docker || true
+
+  clean_shell_hook() {
+    local shell_file="$1"
+    local temp_file
+    [[ -f "${shell_file}" ]] || touch "${shell_file}"
+    temp_file="$(mktemp)"
+    awk '
+      BEGIN {
+        skip_block = 0
+        skip_legacy_fi = 0
+      }
+      /^# >>> zoumh docker env >>>$/ {
+        skip_block = 1
+        next
+      }
+      /^# <<< zoumh docker env <<</ {
+        skip_block = 0
+        next
+      }
+      skip_block {
+        next
+      }
+      skip_legacy_fi && /^fi$/ {
+        skip_legacy_fi = 0
+        next
+      }
+      /^# zoumh docker env$/ {
+        skip_legacy_fi = 1
+        next
+      }
+      /\/etc\/profile\.d\/zoumh-docker\.sh/ {
+        next
+      }
+      /\/zoumh\/sh\/docker\.sh/ {
+        next
+      }
+      {
+        skip_legacy_fi = 0
+        print
+      }
+    ' "${shell_file}" > "${temp_file}"
+    cat "${temp_file}" > "${shell_file}"
+    rm -f "${temp_file}"
+  }
 
   cat > "${env_file}" <<EOF
 export DOCKER_HOME='${docker_dir}'
@@ -53,28 +109,27 @@ esac
 EOF
   chmod 644 "${env_file}"
 
-  if ! grep -Fq "${bashrc_snippet}" /etc/bashrc 2>/dev/null; then
-    cat >> /etc/bashrc <<EOF
+  clean_shell_hook /etc/bashrc
+  cat >> /etc/bashrc <<EOF
 
 ${bashrc_snippet}
 if [ -f /etc/profile.d/zoumh-docker.sh ]; then
   . /etc/profile.d/zoumh-docker.sh
 fi
+# <<< zoumh docker env <<<
 EOF
-  fi
 
   mkdir -p /root
   for shell_file in /root/.bashrc /root/.bash_profile; do
-    touch "${shell_file}"
-    if ! grep -Fq "${bashrc_snippet}" "${shell_file}"; then
-      cat >> "${shell_file}" <<EOF
+    clean_shell_hook "${shell_file}"
+    cat >> "${shell_file}" <<EOF
 
 ${bashrc_snippet}
 if [ -f /etc/profile.d/zoumh-docker.sh ]; then
   . /etc/profile.d/zoumh-docker.sh
 fi
+# <<< zoumh docker env <<<
 EOF
-    fi
   done
 
   cat > "${helper_file}" <<EOF
