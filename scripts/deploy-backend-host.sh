@@ -3,7 +3,7 @@ set -euo pipefail
 
 PACKAGE_DIR="${PACKAGE_DIR:-/zoumh/java/zmh/backend/packages}"
 LOG_DIR="${LOG_DIR:-/zoumh/java/zmh/backend/logs}"
-JAVA_IMAGE="${JAVA_IMAGE:-eclipse-temurin:21-jre}"
+RUN_DIR="${RUN_DIR:-/zoumh/java/zmh/backend/run}"
 JDK_ARCHIVE="${JDK_ARCHIVE:-/zoumh/jdk/openjdk-21.0.2_linux-x64_bin.tar.gz}"
 JDK_HOME="${JDK_HOME:-/zoumh/jdk/jdk21}"
 NACOS_ADDR="${NACOS_ADDR:-156.225.28.110:8848}"
@@ -15,20 +15,20 @@ REDIS_PASSWORD="${REDIS_PASSWORD:-zoumh}"
 REDIS_DATABASE="${REDIS_DATABASE:-0}"
 TZ_NAME="${TZ_NAME:-Asia/Shanghai}"
 JAVA_TMPDIR="${JAVA_TMPDIR:-/tmp/zoumh-java}"
-DEFAULT_JAVA_OPTS="${DEFAULT_JAVA_OPTS:--Dfile.encoding=UTF-8 -Djava.security.egd=file:/dev/./urandom -Djava.io.tmpdir=/tmp/zoumh-java -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+ExitOnOutOfMemoryError -XX:MaxMetaspaceSize=192m -XX:ReservedCodeCacheSize=128m -XX:MaxDirectMemorySize=128m}"
-JAVA_OPTS_AUTH="${JAVA_OPTS_AUTH:--Xms128m -Xmx256m}"
-JAVA_OPTS_SYSTEM="${JAVA_OPTS_SYSTEM:--Xms256m -Xmx512m}"
-JAVA_OPTS_GEN="${JAVA_OPTS_GEN:--Xms128m -Xmx256m}"
-JAVA_OPTS_JOB="${JAVA_OPTS_JOB:--Xms128m -Xmx256m}"
-JAVA_OPTS_FILE="${JAVA_OPTS_FILE:--Xms128m -Xmx256m}"
-JAVA_OPTS_TOOLS="${JAVA_OPTS_TOOLS:--Xms128m -Xmx256m}"
-JAVA_OPTS_HOTEL="${JAVA_OPTS_HOTEL:--Xms128m -Xmx256m}"
-JAVA_OPTS_GATEWAY="${JAVA_OPTS_GATEWAY:--Xms256m -Xmx512m -XX:MaxDirectMemorySize=256m}"
+DEFAULT_JAVA_OPTS="${DEFAULT_JAVA_OPTS:--Dfile.encoding=UTF-8 -Djava.security.egd=file:/dev/./urandom -Djava.io.tmpdir=/tmp/zoumh-java -Duser.timezone=Asia/Shanghai -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+ExitOnOutOfMemoryError -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/zoumh/java/zmh/backend/logs -XX:MaxMetaspaceSize=160m -XX:ReservedCodeCacheSize=96m -XX:MaxDirectMemorySize=128m}"
+JAVA_OPTS_AUTH="${JAVA_OPTS_AUTH:--Xms96m -Xmx192m}"
+JAVA_OPTS_SYSTEM="${JAVA_OPTS_SYSTEM:--Xms192m -Xmx384m}"
+JAVA_OPTS_GEN="${JAVA_OPTS_GEN:--Xms96m -Xmx192m}"
+JAVA_OPTS_JOB="${JAVA_OPTS_JOB:--Xms96m -Xmx192m}"
+JAVA_OPTS_FILE="${JAVA_OPTS_FILE:--Xms96m -Xmx192m}"
+JAVA_OPTS_TOOLS="${JAVA_OPTS_TOOLS:--Xms96m -Xmx192m}"
+JAVA_OPTS_HOTEL="${JAVA_OPTS_HOTEL:--Xms96m -Xmx192m}"
+JAVA_OPTS_GATEWAY="${JAVA_OPTS_GATEWAY:--Xms192m -Xmx384m -XX:MaxDirectMemorySize=192m}"
 
-mkdir -p "${PACKAGE_DIR}" "${LOG_DIR}"
+mkdir -p "${PACKAGE_DIR}" "${LOG_DIR}" "${RUN_DIR}" "${JAVA_TMPDIR}"
 
 ensure_jdk() {
-  mkdir -p "$(dirname "${JDK_HOME}")" "${JAVA_TMPDIR}"
+  mkdir -p "$(dirname "${JDK_HOME}")"
   if [[ -x "${JDK_HOME}/bin/java" ]]; then
     return 0
   fi
@@ -52,122 +52,158 @@ ensure_jdk() {
 }
 
 write_host_java_env() {
-  local env_file="/host/etc/profile.d/zoumh-jdk21.sh"
-  docker run --rm -v /:/host alpine:3.20 sh -lc "
-    mkdir -p /host/etc/profile.d &&
-    cat > '${env_file}' <<'EOF'
+  local env_file="/etc/profile.d/zoumh-jdk21.sh"
+  cat > "${env_file}" <<EOF
 export JAVA_HOME='${JDK_HOME}'
 export PATH='${JDK_HOME}/bin:\$PATH'
 EOF
-    chmod 644 '${env_file}'
-  " >/dev/null 2>&1 || true
+  chmod 644 "${env_file}"
 }
 
-ensure_jdk
-write_host_java_env
+stop_docker_service() {
+  local service_name="$1"
+  docker rm -f "${service_name}" >/dev/null 2>&1 || true
+}
 
-docker rm -f "ruoyi-monitor" >/dev/null 2>&1 || true
+stop_host_service() {
+  local service_name="$1"
+  local pid_file="${RUN_DIR}/${service_name}.pid"
+  if [[ -f "${pid_file}" ]]; then
+    local pid
+    pid="$(cat "${pid_file}")"
+    if [[ -n "${pid}" ]] && kill -0 "${pid}" >/dev/null 2>&1; then
+      kill "${pid}" >/dev/null 2>&1 || true
+      for _ in $(seq 1 20); do
+        if ! kill -0 "${pid}" >/dev/null 2>&1; then
+          break
+        fi
+        sleep 1
+      done
+      kill -9 "${pid}" >/dev/null 2>&1 || true
+    fi
+    rm -f "${pid_file}"
+  fi
+  pkill -f "/app/${service_name}\.jar" >/dev/null 2>&1 || true
+  pkill -f "${PACKAGE_DIR}/.*${service_name}.*\.jar" >/dev/null 2>&1 || true
+}
 
-run_java_service() {
-  local name="$1"
+start_host_service() {
+  local service_name="$1"
   local jar_name="$2"
   local java_opts="$3"
   shift 3
 
   if [[ ! -f "${PACKAGE_DIR}/${jar_name}" ]]; then
-    echo "skip ${name}: ${jar_name} not found"
+    echo "skip ${service_name}: ${jar_name} not found"
     return 0
   fi
 
-  docker rm -f "${name}" >/dev/null 2>&1 || true
+  stop_docker_service "${service_name}"
+  stop_host_service "${service_name}"
 
-  docker run -d \
-    --name "${name}" \
-    --restart unless-stopped \
-    --network host \
-    -e TZ="${TZ_NAME}" \
-    -e JAVA_HOME=/opt/jdk \
-    -e "PATH=/opt/jdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
-    -e "JAVA_OPTS=${DEFAULT_JAVA_OPTS} ${java_opts}" \
+  local pid_file="${RUN_DIR}/${service_name}.pid"
+  local log_file="${LOG_DIR}/${service_name}.log"
+
+  env \
+    JAVA_HOME="${JDK_HOME}" \
+    PATH="${JDK_HOME}/bin:${PATH}" \
+    TZ="${TZ_NAME}" \
+    JAVA_TMPDIR="${JAVA_TMPDIR}" \
+    JAVA_TOOL_OPTIONS="" \
     "$@" \
-    -v "${PACKAGE_DIR}:/app" \
-    -v "${LOG_DIR}:/logs" \
-    -v "${JDK_HOME}:/opt/jdk:ro" \
-    -v "${JAVA_TMPDIR}:${JAVA_TMPDIR}" \
-    "${JAVA_IMAGE}" \
-    sh -lc "mkdir -p '${JAVA_TMPDIR}' && exec /opt/jdk/bin/java \$JAVA_OPTS -jar /app/${jar_name} > /logs/${name}.log 2>&1"
+    nohup "${JDK_HOME}/bin/java" ${DEFAULT_JAVA_OPTS} ${java_opts} -jar "${PACKAGE_DIR}/${jar_name}" >> "${log_file}" 2>&1 &
 
-  echo "started ${name}"
+  local pid=$!
+  echo "${pid}" > "${pid_file}"
+
+  for _ in $(seq 1 20); do
+    if ! kill -0 "${pid}" >/dev/null 2>&1; then
+      echo "failed to start ${service_name}, check ${log_file}" >&2
+      tail -n 50 "${log_file}" || true
+      exit 1
+    fi
+    sleep 1
+    if grep -Eq "Started .* in .* seconds|Tomcat started on port|Netty started on port" "${log_file}" 2>/dev/null; then
+      break
+    fi
+  done
+
+  echo "started ${service_name} pid=${pid}"
 }
 
-run_java_service \
+ensure_jdk
+write_host_java_env
+
+stop_docker_service "ruoyi-monitor"
+
+start_host_service \
   "ruoyi-auth" \
   "ruoyi-auth.jar" \
   "${JAVA_OPTS_AUTH}" \
-  -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
-  -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
-  -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
+  SPRING_CLOUD_NACOS_SERVER_ADDR="${NACOS_ADDR}" \
+  SPRING_CLOUD_NACOS_USERNAME="${NACOS_USERNAME}" \
+  SPRING_CLOUD_NACOS_PASSWORD="${NACOS_PASSWORD}"
 
-run_java_service \
+start_host_service \
   "ruoyi-system" \
   "ruoyi-modules-system.jar" \
   "${JAVA_OPTS_SYSTEM}" \
-  -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
-  -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
-  -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}" \
-  -e "SPRING_CLOUD_NACOS_DISCOVERY_SERVICE=ruoyi-system"
+  SPRING_CLOUD_NACOS_SERVER_ADDR="${NACOS_ADDR}" \
+  SPRING_CLOUD_NACOS_USERNAME="${NACOS_USERNAME}" \
+  SPRING_CLOUD_NACOS_PASSWORD="${NACOS_PASSWORD}" \
+  SPRING_CLOUD_NACOS_DISCOVERY_SERVICE=ruoyi-system
 
-run_java_service \
+start_host_service \
   "ruoyi-gen" \
   "ruoyi-modules-gen.jar" \
   "${JAVA_OPTS_GEN}" \
-  -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
-  -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
-  -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
+  SPRING_CLOUD_NACOS_SERVER_ADDR="${NACOS_ADDR}" \
+  SPRING_CLOUD_NACOS_USERNAME="${NACOS_USERNAME}" \
+  SPRING_CLOUD_NACOS_PASSWORD="${NACOS_PASSWORD}"
 
-run_java_service \
+start_host_service \
   "ruoyi-job" \
   "ruoyi-modules-job.jar" \
   "${JAVA_OPTS_JOB}" \
-  -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
-  -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
-  -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
+  SPRING_CLOUD_NACOS_SERVER_ADDR="${NACOS_ADDR}" \
+  SPRING_CLOUD_NACOS_USERNAME="${NACOS_USERNAME}" \
+  SPRING_CLOUD_NACOS_PASSWORD="${NACOS_PASSWORD}"
 
-run_java_service \
+start_host_service \
   "ruoyi-file" \
   "ruoyi-modules-file.jar" \
   "${JAVA_OPTS_FILE}" \
-  -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
-  -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
-  -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
+  SPRING_CLOUD_NACOS_SERVER_ADDR="${NACOS_ADDR}" \
+  SPRING_CLOUD_NACOS_USERNAME="${NACOS_USERNAME}" \
+  SPRING_CLOUD_NACOS_PASSWORD="${NACOS_PASSWORD}"
 
-run_java_service \
+start_host_service \
   "zoumh-tools" \
   "zoumh-tools.jar" \
   "${JAVA_OPTS_TOOLS}" \
-  -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
-  -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
-  -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
+  SPRING_CLOUD_NACOS_SERVER_ADDR="${NACOS_ADDR}" \
+  SPRING_CLOUD_NACOS_USERNAME="${NACOS_USERNAME}" \
+  SPRING_CLOUD_NACOS_PASSWORD="${NACOS_PASSWORD}"
 
-run_java_service \
+start_host_service \
   "zoumh-hotel-monitor" \
   "zoumh-hotel-monitor.jar" \
   "${JAVA_OPTS_HOTEL}" \
-  -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
-  -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
-  -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
+  SPRING_CLOUD_NACOS_SERVER_ADDR="${NACOS_ADDR}" \
+  SPRING_CLOUD_NACOS_USERNAME="${NACOS_USERNAME}" \
+  SPRING_CLOUD_NACOS_PASSWORD="${NACOS_PASSWORD}"
 
-run_java_service \
+start_host_service \
   "ruoyi-gateway" \
   "ruoyi-gateway.jar" \
   "${JAVA_OPTS_GATEWAY}" \
-  -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
-  -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
-  -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}" \
-  -e "SPRING_DATA_REDIS_HOST=${REDIS_HOST}" \
-  -e "SPRING_DATA_REDIS_PORT=${REDIS_PORT}" \
-  -e "SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}" \
-  -e "SPRING_DATA_REDIS_DATABASE=${REDIS_DATABASE}"
+  SPRING_CLOUD_NACOS_SERVER_ADDR="${NACOS_ADDR}" \
+  SPRING_CLOUD_NACOS_USERNAME="${NACOS_USERNAME}" \
+  SPRING_CLOUD_NACOS_PASSWORD="${NACOS_PASSWORD}" \
+  SPRING_DATA_REDIS_HOST="${REDIS_HOST}" \
+  SPRING_DATA_REDIS_PORT="${REDIS_PORT}" \
+  SPRING_DATA_REDIS_PASSWORD="${REDIS_PASSWORD}" \
+  SPRING_DATA_REDIS_DATABASE="${REDIS_DATABASE}"
 
 if [[ -n "${POST_DEPLOY_CMD:-}" ]]; then
   sh -lc "${POST_DEPLOY_CMD}"
@@ -175,5 +211,4 @@ fi
 
 echo "JAVA_HOME=${JDK_HOME}"
 "${JDK_HOME}/bin/java" -version 2>&1 | head -n 1 || true
-docker stats --no-stream --format '{{.Name}}\t{{.MemUsage}}' | grep -E 'ruoyi-|zoumh-' || true
-docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E 'ruoyi-|zoumh-tools|zoumh-hotel-monitor' || true
+ps -eo pid,rss,cmd --sort=-rss | grep -E 'ruoyi-|zoumh-' | grep -v grep | head -n 20 || true
