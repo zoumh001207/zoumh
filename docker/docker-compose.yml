@@ -7,9 +7,21 @@ services:
       context: ./nacos
     environment:
       - MODE=standalone
+      - JVM_XMS=256m
+      - JVM_XMX=256m
+      - JVM_XMN=128m
+      - JVM_MS=128m
+      - JVM_MMS=192m
     volumes:
       - ./nacos/logs/:/home/nacos/logs
       - ./nacos/conf/application.properties:/home/nacos/conf/application.properties
+    mem_limit: 512m
+    mem_reservation: 256m
+    pids_limit: 256
+    logging:
+      options:
+        max-size: "20m"
+        max-file: "3"
     ports:
       - "8848:8848"
       - "9848:9848"
@@ -30,14 +42,25 @@ services:
     command: [
           'mysqld',
           '--innodb-buffer-pool-size=80M',
+          '--innodb-log-buffer-size=8M',
+          '--table-open-cache=128',
+          '--thread-cache-size=16',
+          '--performance_schema=OFF',
           '--character-set-server=utf8mb4',
           '--collation-server=utf8mb4_unicode_ci',
           '--default-time-zone=+8:00',
           '--lower-case-table-names=1'
         ]
+    mem_limit: 768m
+    mem_reservation: 384m
+    pids_limit: 256
+    logging:
+      options:
+        max-size: "20m"
+        max-file: "3"
     environment:
       MYSQL_DATABASE: 'ry-cloud'
-      MYSQL_ROOT_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: zoumh
   ruoyi-redis:
     container_name: ruoyi-redis
     image: redis
@@ -49,6 +72,13 @@ services:
       - ./redis/conf/redis.conf:/home/ruoyi/redis/redis.conf
       - ./redis/data:/data
     command: redis-server /home/ruoyi/redis/redis.conf
+    mem_limit: 192m
+    mem_reservation: 96m
+    pids_limit: 128
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
   ruoyi-nginx:
     container_name: ruoyi-nginx
     image: nginx
@@ -61,6 +91,13 @@ services:
       - ./nginx/conf/nginx.conf:/etc/nginx/nginx.conf
       - ./nginx/logs:/var/log/nginx
       - ./nginx/conf.d:/etc/nginx/conf.d
+    mem_limit: 128m
+    mem_reservation: 64m
+    pids_limit: 128
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
     depends_on:
       - ruoyi-gateway
     links:
@@ -72,6 +109,13 @@ services:
       dockerfile: dockerfile
     ports:
       - "8080:8080"
+    mem_limit: 512m
+    mem_reservation: 224m
+    pids_limit: 256
+    logging:
+      options:
+        max-size: "20m"
+        max-file: "3"
     depends_on:
       - ruoyi-redis
     links:
@@ -83,6 +127,13 @@ services:
       dockerfile: dockerfile
     ports:
       - "9200:9200"
+    mem_limit: 288m
+    mem_reservation: 160m
+    pids_limit: 256
+    logging:
+      options:
+        max-size: "20m"
+        max-file: "3"
     depends_on:
       - ruoyi-redis
     links:
@@ -94,6 +145,13 @@ services:
       dockerfile: dockerfile
     ports:
       - "9201:9201"
+    mem_limit: 512m
+    mem_reservation: 224m
+    pids_limit: 256
+    logging:
+      options:
+        max-size: "20m"
+        max-file: "3"
     depends_on:
       - ruoyi-redis
       - ruoyi-mysql
@@ -107,6 +165,13 @@ services:
       dockerfile: dockerfile
     ports:
       - "9202:9202"
+    mem_limit: 288m
+    mem_reservation: 128m
+    pids_limit: 256
+    logging:
+      options:
+        max-size: "20m"
+        max-file: "3"
     depends_on:
       - ruoyi-mysql
     links:
@@ -118,6 +183,13 @@ services:
       dockerfile: dockerfile
     ports:
       - "9203:9203"
+    mem_limit: 288m
+    mem_reservation: 128m
+    pids_limit: 256
+    logging:
+      options:
+        max-size: "20m"
+        max-file: "3"
     depends_on:
       - ruoyi-mysql
     links:
@@ -129,6 +201,13 @@ services:
       dockerfile: dockerfile
     ports:
       - "9300:9300"
+    mem_limit: 288m
+    mem_reservation: 128m
+    pids_limit: 256
+    logging:
+      options:
+        max-size: "20m"
+        max-file: "3"
     volumes:
     - ./ruoyi/uploadPath:/home/ruoyi/uploadPath
   ruoyi-visual-monitor:
@@ -138,3 +217,10 @@ services:
       dockerfile: dockerfile
     ports:
       - "9100:9100"
+    mem_limit: 256m
+    mem_reservation: 128m
+    pids_limit: 256
+    logging:
+      options:
+        max-size: "20m"
+        max-file: "3"
