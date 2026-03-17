@@ -173,4 +173,7 @@ if [[ -n "${POST_DEPLOY_CMD:-}" ]]; then
   sh -lc "${POST_DEPLOY_CMD}"
 fi
 
+echo "JAVA_HOME=${JDK_HOME}"
+"${JDK_HOME}/bin/java" -version 2>&1 | head -n 1 || true
+docker stats --no-stream --format '{{.Name}}\t{{.MemUsage}}' | grep -E 'ruoyi-|zoumh-' || true
 docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E 'ruoyi-|zoumh-tools|zoumh-hotel-monitor' || true
