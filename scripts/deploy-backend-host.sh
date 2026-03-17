@@ -41,6 +41,7 @@ DOCKER_MEMORY_RESERVATION_TOOLS="${DOCKER_MEMORY_RESERVATION_TOOLS:-128m}"
 DOCKER_MEMORY_RESERVATION_HOTEL="${DOCKER_MEMORY_RESERVATION_HOTEL:-160m}"
 DOCKER_MEMORY_RESERVATION_GATEWAY="${DOCKER_MEMORY_RESERVATION_GATEWAY:-224m}"
 DOCKER_PIDS_LIMIT="${DOCKER_PIDS_LIMIT:-256}"
+ENABLE_RUOYI_JOB="${ENABLE_RUOYI_JOB:-false}"
 
 mkdir -p "${PACKAGE_DIR}" "${LOG_DIR}"
 
@@ -203,6 +204,7 @@ clean_host_java_env
 ensure_docker_shell_env
 
 docker rm -f "ruoyi-monitor" >/dev/null 2>&1 || true
+docker rm -f "ruoyi-job" >/dev/null 2>&1 || true
 
 run_java_service() {
   local name="$1"
@@ -274,15 +276,19 @@ run_java_service \
   -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
   -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
 
-run_java_service \
-  "ruoyi-job" \
-  "ruoyi-modules-job.jar" \
-  "${JAVA_OPTS_JOB}" \
-  "${DOCKER_MEMORY_JOB}" \
-  "${DOCKER_MEMORY_RESERVATION_JOB}" \
-  -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
-  -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
-  -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
+if [[ "${ENABLE_RUOYI_JOB}" == "true" ]]; then
+  run_java_service \
+    "ruoyi-job" \
+    "ruoyi-modules-job.jar" \
+    "${JAVA_OPTS_JOB}" \
+    "${DOCKER_MEMORY_JOB}" \
+    "${DOCKER_MEMORY_RESERVATION_JOB}" \
+    -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
+    -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
+    -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
+else
+  echo "skip ruoyi-job: disabled"
+fi
 
 run_java_service \
   "ruoyi-file" \
