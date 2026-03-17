@@ -19,33 +19,22 @@
     </properties>
 
     <dependencies>
-
         <dependency>
-            <groupId>com.ruoyi</groupId>
-            <artifactId>ruoyi-common-security</artifactId>
-            <version>${ruoyi.version}</version>
+            <groupId>com.zoumh</groupId>
+            <artifactId>zoumh-api-tools</artifactId>
+            <version>${project.version}</version>
         </dependency>
-
-
-        <!--        <dependency>-->
-<!--            <groupId>com.zoumh</groupId>-->
-<!--            <artifactId>zoumh-api-tools</artifactId>-->
-<!--            <version>1.0</version>-->
-<!--            <scope>compile</scope>-->
-<!--        </dependency>-->
 
         <!-- RuoYi Common DataSource -->
         <dependency>
             <groupId>com.ruoyi</groupId>
             <artifactId>ruoyi-common-datasource</artifactId>
-            <version>${ruoyi.version}</version>
         </dependency>
 
         <!-- RuoYi Common DataScope -->
         <dependency>
             <groupId>com.ruoyi</groupId>
             <artifactId>ruoyi-common-datascope</artifactId>
-            <version>${ruoyi.version}</version>
         </dependency>
 
         <!-- RuoYi Common Log -->
@@ -111,12 +100,12 @@
             <groupId>com.alicp.jetcache</groupId>
             <artifactId>jetcache-anno</artifactId>
             <version>${jetcache.version}</version>
-        </dependency>
-
-        <dependency>
-            <groupId>com.github.yulichang</groupId>
-            <artifactId>mybatis-plus-join</artifactId>
-            <version>${mybatis-plus-join.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>com.alibaba</groupId>
+                    <artifactId>druid</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!--解决spring-boot-starter-web中依赖的漏洞-->
@@ -130,14 +119,12 @@
         <dependency>
             <groupId>org.springframework.kafka</groupId>
             <artifactId>spring-kafka</artifactId>
-            <version>${kafka.version}</version>
         </dependency>
 
         <!-- websocket -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-websocket</artifactId>
-            <version>${websocket.version}</version>
         </dependency>
 
         <dependency>
@@ -155,14 +142,13 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>${lombok.version}</version>
         </dependency>
 
         <!-- Pagehelper -->
         <dependency>
             <groupId>com.github.pagehelper</groupId>
             <artifactId>pagehelper-spring-boot-starter</artifactId>
-            <version>2.0.0</version>
+            <version>${pagehelper.boot.version}</version>
         </dependency>
 
 
@@ -171,10 +157,6 @@
             <artifactId>seata-all</artifactId>
             <version>1.6.1</version>
             <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
         </dependency>
 
         <dependency>
@@ -197,6 +179,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
                 <configuration>
                     <testFailureIgnore>true</testFailureIgnore>
                     <skipTests>true</skipTests>
