@@ -174,20 +174,15 @@ ensure_jdk() {
   rm -rf "${extract_dir}"
 }
 
-write_host_java_env() {
+clean_host_java_env() {
   local env_file="/host/etc/profile.d/zoumh-jdk21.sh"
   docker run --rm -v /:/host alpine:3.20 sh -lc "
-    mkdir -p /host/etc/profile.d &&
-    cat > '${env_file}' <<'EOF'
-export JAVA_HOME='${JDK_HOME}'
-export PATH='${JDK_HOME}/bin:\$PATH'
-EOF
-    chmod 644 '${env_file}'
+    rm -f '${env_file}'
   " >/dev/null 2>&1 || true
 }
 
 ensure_jdk
-write_host_java_env
+clean_host_java_env
 ensure_docker_shell_env
 
 docker rm -f "ruoyi-monitor" >/dev/null 2>&1 || true
