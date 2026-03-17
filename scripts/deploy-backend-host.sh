@@ -15,15 +15,32 @@ REDIS_PASSWORD="${REDIS_PASSWORD:-zoumh}"
 REDIS_DATABASE="${REDIS_DATABASE:-0}"
 TZ_NAME="${TZ_NAME:-Asia/Shanghai}"
 JAVA_TMPDIR="${JAVA_TMPDIR:-/tmp/zoumh-java}"
-DEFAULT_JAVA_OPTS="${DEFAULT_JAVA_OPTS:--Dfile.encoding=UTF-8 -Djava.security.egd=file:/dev/./urandom -Djava.io.tmpdir=/tmp/zoumh-java -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+ExitOnOutOfMemoryError -XX:MaxMetaspaceSize=192m -XX:ReservedCodeCacheSize=128m -XX:MaxDirectMemorySize=128m}"
-JAVA_OPTS_AUTH="${JAVA_OPTS_AUTH:--Xms128m -Xmx256m}"
-JAVA_OPTS_SYSTEM="${JAVA_OPTS_SYSTEM:--Xms256m -Xmx512m}"
-JAVA_OPTS_GEN="${JAVA_OPTS_GEN:--Xms128m -Xmx256m}"
-JAVA_OPTS_JOB="${JAVA_OPTS_JOB:--Xms128m -Xmx256m}"
-JAVA_OPTS_FILE="${JAVA_OPTS_FILE:--Xms128m -Xmx256m}"
-JAVA_OPTS_TOOLS="${JAVA_OPTS_TOOLS:--Xms128m -Xmx256m}"
-JAVA_OPTS_HOTEL="${JAVA_OPTS_HOTEL:--Xms128m -Xmx256m}"
-JAVA_OPTS_GATEWAY="${JAVA_OPTS_GATEWAY:--Xms256m -Xmx512m -XX:MaxDirectMemorySize=256m}"
+DEFAULT_JAVA_OPTS="${DEFAULT_JAVA_OPTS:--Dfile.encoding=UTF-8 -Djava.security.egd=file:/dev/./urandom -Djava.io.tmpdir=/tmp/zoumh-java -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+ExitOnOutOfMemoryError -XX:MaxMetaspaceSize=160m -XX:ReservedCodeCacheSize=96m -XX:MaxDirectMemorySize=96m}"
+JAVA_OPTS_AUTH="${JAVA_OPTS_AUTH:--Xms64m -Xmx192m}"
+JAVA_OPTS_SYSTEM="${JAVA_OPTS_SYSTEM:--Xms128m -Xmx384m}"
+JAVA_OPTS_GEN="${JAVA_OPTS_GEN:--Xms64m -Xmx192m}"
+JAVA_OPTS_JOB="${JAVA_OPTS_JOB:--Xms64m -Xmx192m}"
+JAVA_OPTS_FILE="${JAVA_OPTS_FILE:--Xms64m -Xmx192m}"
+JAVA_OPTS_TOOLS="${JAVA_OPTS_TOOLS:--Xms64m -Xmx192m}"
+JAVA_OPTS_HOTEL="${JAVA_OPTS_HOTEL:--Xms64m -Xmx256m}"
+JAVA_OPTS_GATEWAY="${JAVA_OPTS_GATEWAY:--Xms128m -Xmx384m -XX:MaxDirectMemorySize=160m}"
+DOCKER_MEMORY_AUTH="${DOCKER_MEMORY_AUTH:-320m}"
+DOCKER_MEMORY_SYSTEM="${DOCKER_MEMORY_SYSTEM:-576m}"
+DOCKER_MEMORY_GEN="${DOCKER_MEMORY_GEN:-320m}"
+DOCKER_MEMORY_JOB="${DOCKER_MEMORY_JOB:-320m}"
+DOCKER_MEMORY_FILE="${DOCKER_MEMORY_FILE:-320m}"
+DOCKER_MEMORY_TOOLS="${DOCKER_MEMORY_TOOLS:-320m}"
+DOCKER_MEMORY_HOTEL="${DOCKER_MEMORY_HOTEL:-384m}"
+DOCKER_MEMORY_GATEWAY="${DOCKER_MEMORY_GATEWAY:-576m}"
+DOCKER_MEMORY_RESERVATION_AUTH="${DOCKER_MEMORY_RESERVATION_AUTH:-192m}"
+DOCKER_MEMORY_RESERVATION_SYSTEM="${DOCKER_MEMORY_RESERVATION_SYSTEM:-256m}"
+DOCKER_MEMORY_RESERVATION_GEN="${DOCKER_MEMORY_RESERVATION_GEN:-160m}"
+DOCKER_MEMORY_RESERVATION_JOB="${DOCKER_MEMORY_RESERVATION_JOB:-160m}"
+DOCKER_MEMORY_RESERVATION_FILE="${DOCKER_MEMORY_RESERVATION_FILE:-160m}"
+DOCKER_MEMORY_RESERVATION_TOOLS="${DOCKER_MEMORY_RESERVATION_TOOLS:-160m}"
+DOCKER_MEMORY_RESERVATION_HOTEL="${DOCKER_MEMORY_RESERVATION_HOTEL:-192m}"
+DOCKER_MEMORY_RESERVATION_GATEWAY="${DOCKER_MEMORY_RESERVATION_GATEWAY:-256m}"
+DOCKER_PIDS_LIMIT="${DOCKER_PIDS_LIMIT:-256}"
 
 mkdir -p "${PACKAGE_DIR}" "${LOG_DIR}"
 
@@ -191,7 +208,9 @@ run_java_service() {
   local name="$1"
   local jar_name="$2"
   local java_opts="$3"
-  shift 3
+  local docker_memory="$4"
+  local docker_memory_reservation="$5"
+  shift 5
 
   if [[ ! -f "${PACKAGE_DIR}/${jar_name}" ]]; then
     echo "skip ${name}: ${jar_name} not found"
@@ -204,6 +223,11 @@ run_java_service() {
     --name "${name}" \
     --restart unless-stopped \
     --network host \
+    --memory="${docker_memory}" \
+    --memory-reservation="${docker_memory_reservation}" \
+    --pids-limit="${DOCKER_PIDS_LIMIT}" \
+    --log-opt max-size=20m \
+    --log-opt max-file=3 \
     -e TZ="${TZ_NAME}" \
     -e JAVA_HOME=/opt/jdk \
     -e "PATH=/opt/jdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
@@ -223,6 +247,8 @@ run_java_service \
   "ruoyi-auth" \
   "ruoyi-auth.jar" \
   "${JAVA_OPTS_AUTH}" \
+  "${DOCKER_MEMORY_AUTH}" \
+  "${DOCKER_MEMORY_RESERVATION_AUTH}" \
   -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
   -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
   -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
@@ -231,6 +257,8 @@ run_java_service \
   "ruoyi-system" \
   "ruoyi-modules-system.jar" \
   "${JAVA_OPTS_SYSTEM}" \
+  "${DOCKER_MEMORY_SYSTEM}" \
+  "${DOCKER_MEMORY_RESERVATION_SYSTEM}" \
   -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
   -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
   -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}" \
@@ -240,6 +268,8 @@ run_java_service \
   "ruoyi-gen" \
   "ruoyi-modules-gen.jar" \
   "${JAVA_OPTS_GEN}" \
+  "${DOCKER_MEMORY_GEN}" \
+  "${DOCKER_MEMORY_RESERVATION_GEN}" \
   -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
   -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
   -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
@@ -248,6 +278,8 @@ run_java_service \
   "ruoyi-job" \
   "ruoyi-modules-job.jar" \
   "${JAVA_OPTS_JOB}" \
+  "${DOCKER_MEMORY_JOB}" \
+  "${DOCKER_MEMORY_RESERVATION_JOB}" \
   -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
   -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
   -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
@@ -256,6 +288,8 @@ run_java_service \
   "ruoyi-file" \
   "ruoyi-modules-file.jar" \
   "${JAVA_OPTS_FILE}" \
+  "${DOCKER_MEMORY_FILE}" \
+  "${DOCKER_MEMORY_RESERVATION_FILE}" \
   -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
   -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
   -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
@@ -264,6 +298,8 @@ run_java_service \
   "zoumh-tools" \
   "zoumh-tools.jar" \
   "${JAVA_OPTS_TOOLS}" \
+  "${DOCKER_MEMORY_TOOLS}" \
+  "${DOCKER_MEMORY_RESERVATION_TOOLS}" \
   -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
   -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
   -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
@@ -272,6 +308,8 @@ run_java_service \
   "zoumh-hotel-monitor" \
   "zoumh-hotel-monitor.jar" \
   "${JAVA_OPTS_HOTEL}" \
+  "${DOCKER_MEMORY_HOTEL}" \
+  "${DOCKER_MEMORY_RESERVATION_HOTEL}" \
   -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
   -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
   -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
@@ -280,6 +318,8 @@ run_java_service \
   "ruoyi-gateway" \
   "ruoyi-gateway.jar" \
   "${JAVA_OPTS_GATEWAY}" \
+  "${DOCKER_MEMORY_GATEWAY}" \
+  "${DOCKER_MEMORY_RESERVATION_GATEWAY}" \
   -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
   -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
   -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}" \
