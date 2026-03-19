@@ -1,22 +1,26 @@
 package com.ruoyi.gateway.filter;
 
-import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilter;
 import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFactory;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
+import org.springframework.core.io.buffer.NettyDataBufferFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.server.reactive.ServerHttpRequest;
+import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
 import org.springframework.stereotype.Component;
+import org.springframework.web.server.ServerWebExchange;
 import com.alibaba.fastjson2.JSON;
 import com.alibaba.fastjson2.JSONObject;
 import com.ruoyi.common.core.utils.ServletUtils;
 import com.ruoyi.common.core.utils.StringUtils;
 import com.ruoyi.gateway.config.properties.CaptchaProperties;
 import com.ruoyi.gateway.service.ValidateCodeService;
+import io.netty.buffer.ByteBufAllocator;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * 验证码过滤器
@@ -50,31 +54,48 @@ public class ValidateCodeFilter extends AbstractGatewayFilterFactory<Object>
                 return chain.filter(exchange);
             }
 
-            try
-            {
-                String rspStr = resolveBodyFromRequest(request);
-                JSONObject obj = JSON.parseObject(rspStr);
-                validateCodeService.checkCaptcha(obj.getString(CODE), obj.getString(UUID));
-            }
-            catch (Exception e)
-            {
-                return ServletUtils.webFluxResponseWriter(exchange.getResponse(), e.getMessage());
-            }
-            return chain.filter(exchange);
+            return DataBufferUtils.join(request.getBody()).flatMap(dataBuffer -> validate(exchange, chain, dataBuffer));
         };
     }
 
-    @SuppressWarnings("deprecation")
-    private String resolveBodyFromRequest(ServerHttpRequest serverHttpRequest)
+    private Mono<Void> validate(ServerWebExchange exchange, org.springframework.cloud.gateway.filter.GatewayFilterChain chain,
+        DataBuffer dataBuffer)
     {
-        // 获取请求体
-        Flux<DataBuffer> body = serverHttpRequest.getBody();
-        AtomicReference<String> bodyRef = new AtomicReference<>();
-        body.subscribe(buffer -> {
-            CharBuffer charBuffer = StandardCharsets.UTF_8.decode(buffer.asByteBuffer());
-            DataBufferUtils.release(buffer);
-            bodyRef.set(charBuffer.toString());
-        });
-        return bodyRef.get();
+        byte[] content = new byte[dataBuffer.readableByteCount()];
+        dataBuffer.read(content);
+        DataBufferUtils.release(dataBuffer);
+        String body = new String(content, StandardCharsets.UTF_8);
+
+        try
+        {
+            JSONObject obj = JSON.parseObject(body);
+            validateCodeService.checkCaptcha(obj.getString(CODE), obj.getString(UUID));
+        }
+        catch (Exception e)
+        {
+            return ServletUtils.webFluxResponseWriter(exchange.getResponse(), e.getMessage());
+        }
+
+        ServerHttpRequest decoratedRequest = new ServerHttpRequestDecorator(exchange.getRequest())
+        {
+            @Override
+            public HttpHeaders getHeaders()
+            {
+                HttpHeaders headers = new HttpHeaders();
+                headers.putAll(super.getHeaders());
+                headers.remove(HttpHeaders.CONTENT_LENGTH);
+                headers.setContentLength(content.length);
+                return headers;
+            }
+
+            @Override
+            public Flux<DataBuffer> getBody()
+            {
+                NettyDataBufferFactory factory = new NettyDataBufferFactory(ByteBufAllocator.DEFAULT);
+                return Flux.just(factory.wrap(content));
+            }
+        };
+
+        return chain.filter(exchange.mutate().request(decoratedRequest).build());
     }
 }
