@@ -133,8 +133,15 @@ public class TokenService
     {
         if (StringUtils.isNotEmpty(token))
         {
-            String userkey = JwtUtils.getUserKey(token);
-            redisService.deleteObject(getTokenKey(userkey));
+            try
+            {
+                String userkey = JwtUtils.getUserKey(token);
+                redisService.deleteObject(getTokenKey(userkey));
+            }
+            catch (Exception e)
+            {
+                log.warn("删除用户缓存信息失败: {}", e.getMessage());
+            }
         }
     }
 

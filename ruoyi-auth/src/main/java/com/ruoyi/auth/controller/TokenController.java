@@ -1,6 +1,7 @@
 package com.ruoyi.auth.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -10,7 +11,6 @@ import com.ruoyi.auth.form.LoginBody;
 import com.ruoyi.auth.form.RegisterBody;
 import com.ruoyi.auth.service.SysLoginService;
 import com.ruoyi.common.core.domain.R;
-import com.ruoyi.common.core.utils.JwtUtils;
 import com.ruoyi.common.core.utils.StringUtils;
 import com.ruoyi.common.security.auth.AuthUtil;
 import com.ruoyi.common.security.service.TokenService;
@@ -22,6 +22,7 @@ import com.ruoyi.system.api.model.LoginUser;
  * 
  * @author ruoyi
  */
+@AllArgsConstructor
 @RestController
 public class TokenController
 {
@@ -46,11 +47,14 @@ public class TokenController
         String token = SecurityUtils.getToken(request);
         if (StringUtils.isNotEmpty(token))
         {
-            String username = JwtUtils.getUserName(token);
+            LoginUser loginUser = tokenService.getLoginUser(token);
             // 删除用户缓存记录
             AuthUtil.logoutByToken(token);
             // 记录用户退出日志
-            sysLoginService.logout(username);
+            if (StringUtils.isNotNull(loginUser) && StringUtils.isNotNull(loginUser.getSysUser()))
+            {
+                sysLoginService.logout(loginUser.getSysUser().getUserName());
+            }
         }
         return R.ok();
     }
@@ -72,7 +76,7 @@ public class TokenController
     public R<?> register(@RequestBody RegisterBody registerBody)
     {
         // 用户注册
-        sysLoginService.register(registerBody.getUsername(), registerBody.getPassword());
+        sysLoginService.register(registerBody);
         return R.ok();
     }
 }
