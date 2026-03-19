@@ -325,9 +325,12 @@ echo "JAVA_HOME=${JDK_HOME}"
 "${JDK_HOME}/bin/java" -version 2>&1 | head -n 1 || true
 
 login_probe='{"username":"admin","password":"admin123"}'
+sleep 20
 probe_response="$(curl -ksS -H 'Content-Type: application/json' -d "${login_probe}" https://zoumh.com/prod-api/auth/login || true)"
+gateway_probe="$(curl -sS -H 'Content-Type: application/json' -d "${login_probe}" http://127.0.0.1:8080/auth/login || true)"
 echo "login_probe_response=${probe_response}"
-if printf '%s' "${probe_response}" | grep -q '"code":500'; then
+echo "gateway_probe_response=${gateway_probe}"
+if printf '%s\n%s' "${probe_response}" "${gateway_probe}" | grep -Eq '"code":500|502 Bad Gateway'; then
   echo "--- gateway.log tail ---"
   tail -n 80 "${LOG_DIR}/ruoyi-gateway.log" 2>/dev/null || true
   echo "--- auth.log tail ---"
