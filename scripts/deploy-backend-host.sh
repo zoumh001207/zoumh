@@ -322,5 +322,18 @@ fi
 
 echo "JAVA_HOME=${JDK_HOME}"
 "${JDK_HOME}/bin/java" -version 2>&1 | head -n 1 || true
+
+login_probe='{"username":"admin","password":"admin123","code":"","uuid":""}'
+probe_response="$(curl -sS -H 'Content-Type: application/json' -d "${login_probe}" http://127.0.0.1:8080/auth/login || true)"
+echo "login_probe_response=${probe_response}"
+if printf '%s' "${probe_response}" | grep -q '"code":500'; then
+  echo "--- gateway.log tail ---"
+  tail -n 80 "${LOG_DIR}/ruoyi-gateway.log" 2>/dev/null || true
+  echo "--- auth.log tail ---"
+  tail -n 80 "${LOG_DIR}/ruoyi-auth.log" 2>/dev/null || true
+  echo "--- system.log tail ---"
+  tail -n 80 "${LOG_DIR}/ruoyi-system.log" 2>/dev/null || true
+fi
+
 docker stats --no-stream --format '{{.Name}}\t{{.MemUsage}}' | grep -E 'ruoyi-|zoumh-' || true
 docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E 'ruoyi-|zoumh-tools|zoumh-hotel-monitor' || true
