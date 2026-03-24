@@ -18,8 +18,8 @@ referer:
 
 minio:
   url: ${MINIO_URL:https://s3.cstcloud.cn}
-  accessKey: ${MINIO_ACCESS_KEY:AKIAIK64NPPYHO0YY81Y}
-  secretKey: ${MINIO_SECRET_KEY:C7NUU1AHM5BT8=B4X8HF5D89/ZROVWL/22E/NK/7}
+  accessKey: ${MINIO_ACCESS_KEY:AKIAKPVAL7O24XRGWFSP}
+  secretKey: ${MINIO_SECRET_KEY:Y=F+7+KX085FNQK8YA5T30PK9LE/BZPPFT/5X/2W}
   bucketName: ${MINIO_BUCKET:zoumh}
   autoCreateBucket: ${MINIO_AUTO_CREATE_BUCKET:false}
   manageBucketPolicy: ${MINIO_MANAGE_BUCKET_POLICY:false}
