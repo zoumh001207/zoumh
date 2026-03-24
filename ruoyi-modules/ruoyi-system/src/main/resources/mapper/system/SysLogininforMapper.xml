@@ -42,7 +42,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
 	
 	<delete id="deleteLogininforByIds" parameterType="Long">
  		delete from sys_logininfor where info_id in
- 		<foreach collection="array" item="infoId" open="(" separator="," close=")">
+ 		<foreach collection="infoIds" item="infoId" open="(" separator="," close=")">
  			#{infoId}
         </foreach> 
  	</delete>

@@ -1,6 +1,7 @@
 package com.ruoyi.system.mapper;
 
 import java.util.List;
+import org.apache.ibatis.annotations.Param;
 import com.ruoyi.system.domain.SysConfig;
 
 /**
@@ -24,7 +25,7 @@ public interface SysConfigMapper
      * @param configId 参数ID
      * @return 参数配置信息
      */
-    public SysConfig selectConfigById(Long configId);
+    public SysConfig selectConfigById(@Param("configId") Long configId);
 
     /**
      * 查询参数配置列表
@@ -64,7 +65,7 @@ public interface SysConfigMapper
      * @param configId 参数ID
      * @return 结果
      */
-    public int deleteConfigById(Long configId);
+    public int deleteConfigById(@Param("configId") Long configId);
 
     /**
      * 批量删除参数信息
@@ -72,5 +73,5 @@ public interface SysConfigMapper
      * @param configIds 需要删除的参数ID
      * @return 结果
      */
-    public int deleteConfigByIds(Long[] configIds);
+    public int deleteConfigByIds(@Param("configIds") Long[] configIds);
 }

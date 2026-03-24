@@ -1,6 +1,7 @@
 package com.ruoyi.system.mapper;
 
 import java.util.List;
+import org.apache.ibatis.annotations.Param;
 import com.ruoyi.system.api.domain.SysLogininfor;
 
 /**
@@ -31,7 +32,7 @@ public interface SysLogininforMapper
      * @param infoIds 需要删除的登录日志ID
      * @return 结果
      */
-    public int deleteLogininforByIds(Long[] infoIds);
+    public int deleteLogininforByIds(@Param("infoIds") Long[] infoIds);
 
     /**
      * 清空系统登录日志

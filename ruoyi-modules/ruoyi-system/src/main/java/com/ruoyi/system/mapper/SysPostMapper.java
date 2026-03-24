@@ -1,6 +1,7 @@
 package com.ruoyi.system.mapper;
 
 import java.util.List;
+import org.apache.ibatis.annotations.Param;
 import com.ruoyi.system.domain.SysPost;
 
 /**
@@ -31,7 +32,7 @@ public interface SysPostMapper
      * @param postId 岗位ID
      * @return 角色对象信息
      */
-    public SysPost selectPostById(Long postId);
+    public SysPost selectPostById(@Param("postId") Long postId);
 
     /**
      * 根据用户ID获取岗位选择框列表
@@ -39,7 +40,7 @@ public interface SysPostMapper
      * @param userId 用户ID
      * @return 选中岗位ID列表
      */
-    public List<Long> selectPostListByUserId(Long userId);
+    public List<Long> selectPostListByUserId(@Param("userId") Long userId);
 
     /**
      * 查询用户所属岗位组
@@ -55,7 +56,7 @@ public interface SysPostMapper
      * @param postId 岗位ID
      * @return 结果
      */
-    public int deletePostById(Long postId);
+    public int deletePostById(@Param("postId") Long postId);
 
     /**
      * 批量删除岗位信息
@@ -63,7 +64,7 @@ public interface SysPostMapper
      * @param postIds 需要删除的岗位ID
      * @return 结果
      */
-    public int deletePostByIds(Long[] postIds);
+    public int deletePostByIds(@Param("postIds") Long[] postIds);
 
     /**
      * 修改岗位信息
