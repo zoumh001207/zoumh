@@ -38,8 +38,7 @@ public class WebDavSysFileServiceImpl implements ISysFileService
     @Override
     public String uploadFile(MultipartFile file) throws Exception
     {
-        String relativePath = normalizeRelativePath(FileUploadUtils.extractFilename(file));
-        ensureParentDirectories(relativePath);
+        String relativePath = flattenRelativePath(FileUploadUtils.extractFilename(file));
 
         HttpRequest request = requestBuilder(relativePath)
                 .header(HttpHeaders.CONTENT_TYPE, StringUtils.isNotEmpty(file.getContentType()) ? file.getContentType() : "application/octet-stream")
@@ -101,39 +100,6 @@ public class WebDavSysFileServiceImpl implements ISysFileService
         response.flushBuffer();
     }
 
-    private void ensureParentDirectories(String relativePath) throws Exception
-    {
-        int lastSlash = relativePath.lastIndexOf('/');
-        if (lastSlash <= 0)
-        {
-            return;
-        }
-
-        String[] segments = relativePath.substring(0, lastSlash).split("/");
-        StringBuilder current = new StringBuilder();
-        for (String segment : segments)
-        {
-            if (StringUtils.isEmpty(segment))
-            {
-                continue;
-            }
-            if (current.length() > 0)
-            {
-                current.append('/');
-            }
-            current.append(segment);
-
-            HttpRequest request = requestBuilder(current.toString())
-                    .method("MKCOL", HttpRequest.BodyPublishers.noBody())
-                    .build();
-            HttpResponse<byte[]> response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
-            if (response.statusCode() != 201 && response.statusCode() != 405 && response.statusCode() != 301)
-            {
-                throw new IllegalStateException("WebDAV MKCOL failed with status " + response.statusCode());
-            }
-        }
-    }
-
     private HttpRequest.Builder requestBuilder(String relativePath)
     {
         return HttpRequest.newBuilder(buildObjectUri(relativePath))
@@ -176,6 +142,11 @@ public class WebDavSysFileServiceImpl implements ISysFileService
     private String normalizeRelativePath(String relativePath)
     {
         return StringUtils.stripStart(relativePath.replace("\\", "/"), "/");
+    }
+
+    private String flattenRelativePath(String relativePath)
+    {
+        return normalizeRelativePath(relativePath).replace("/", "_");
     }
 
     private String decodeRelativePath(String fileUrl)
