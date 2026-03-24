@@ -11,7 +11,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.ruoyi.common.core.text.Convert;
 import com.ruoyi.common.core.utils.poi.ExcelUtil;
 import com.ruoyi.common.core.web.controller.BaseController;
 import com.ruoyi.common.core.web.domain.AjaxResult;
@@ -29,7 +31,7 @@ import com.ruoyi.system.service.ISysRoleService;
 import com.ruoyi.system.service.ISysUserService;
 
 /**
- * 角色信息
+ * 瑙掕壊淇℃伅
  * 
  * @author ruoyi
  */
@@ -55,42 +57,43 @@ public class SysRoleController extends BaseController
         return getDataTable(list);
     }
 
-    @Log(title = "角色管理", businessType = BusinessType.EXPORT)
+    @Log(title = "瑙掕壊绠＄悊", businessType = BusinessType.EXPORT)
     @RequiresPermissions("system:role:export")
     @PostMapping("/export")
     public void export(HttpServletResponse response, SysRole role)
     {
         List<SysRole> list = roleService.selectRoleList(role);
         ExcelUtil<SysRole> util = new ExcelUtil<SysRole>(SysRole.class);
-        util.exportExcel(response, list, "角色数据");
+        util.exportExcel(response, list, "瑙掕壊鏁版嵁");
     }
 
     /**
-     * 根据角色编号获取详细信息
+     * 鏍规嵁瑙掕壊缂栧彿鑾峰彇璇︾粏淇℃伅
      */
     @RequiresPermissions("system:role:query")
     @GetMapping(value = "/{roleId}")
-    public AjaxResult getInfo(@PathVariable Long roleId)
+    public AjaxResult getInfo(@PathVariable("roleId") String roleId)
     {
-        roleService.checkRoleDataScope(roleId);
-        return success(roleService.selectRoleById(roleId));
+        Long parsedRoleId = Convert.toLong(roleId);
+        roleService.checkRoleDataScope(parsedRoleId);
+        return success(roleService.selectRoleById(parsedRoleId));
     }
 
     /**
-     * 新增角色
+     * 鏂板瑙掕壊
      */
     @RequiresPermissions("system:role:add")
-    @Log(title = "角色管理", businessType = BusinessType.INSERT)
+    @Log(title = "瑙掕壊绠＄悊", businessType = BusinessType.INSERT)
     @PostMapping
     public AjaxResult add(@Validated @RequestBody SysRole role)
     {
         if (!roleService.checkRoleNameUnique(role))
         {
-            return error("新增角色'" + role.getRoleName() + "'失败，角色名称已存在");
+            return error("鏂板瑙掕壊'" + role.getRoleName() + "'澶辫触锛岃鑹插悕绉板凡瀛樺湪");
         }
         else if (!roleService.checkRoleKeyUnique(role))
         {
-            return error("新增角色'" + role.getRoleName() + "'失败，角色权限已存在");
+            return error("鏂板瑙掕壊'" + role.getRoleName() + "'澶辫触锛岃鑹叉潈闄愬凡瀛樺湪");
         }
         role.setCreateBy(SecurityUtils.getUsername());
         return toAjax(roleService.insertRole(role));
@@ -98,10 +101,10 @@ public class SysRoleController extends BaseController
     }
 
     /**
-     * 修改保存角色
+     * 淇敼淇濆瓨瑙掕壊
      */
     @RequiresPermissions("system:role:edit")
-    @Log(title = "角色管理", businessType = BusinessType.UPDATE)
+    @Log(title = "瑙掕壊绠＄悊", businessType = BusinessType.UPDATE)
     @PutMapping
     public AjaxResult edit(@Validated @RequestBody SysRole role)
     {
@@ -109,21 +112,21 @@ public class SysRoleController extends BaseController
         roleService.checkRoleDataScope(role.getRoleId());
         if (!roleService.checkRoleNameUnique(role))
         {
-            return error("修改角色'" + role.getRoleName() + "'失败，角色名称已存在");
+            return error("淇敼瑙掕壊'" + role.getRoleName() + "'澶辫触锛岃鑹插悕绉板凡瀛樺湪");
         }
         else if (!roleService.checkRoleKeyUnique(role))
         {
-            return error("修改角色'" + role.getRoleName() + "'失败，角色权限已存在");
+            return error("淇敼瑙掕壊'" + role.getRoleName() + "'澶辫触锛岃鑹叉潈闄愬凡瀛樺湪");
         }
         role.setUpdateBy(SecurityUtils.getUsername());
         return toAjax(roleService.updateRole(role));
     }
 
     /**
-     * 修改保存数据权限
+     * 淇敼淇濆瓨鏁版嵁鏉冮檺
      */
     @RequiresPermissions("system:role:edit")
-    @Log(title = "角色管理", businessType = BusinessType.UPDATE)
+    @Log(title = "瑙掕壊绠＄悊", businessType = BusinessType.UPDATE)
     @PutMapping("/dataScope")
     public AjaxResult dataScope(@RequestBody SysRole role)
     {
@@ -133,10 +136,9 @@ public class SysRoleController extends BaseController
     }
 
     /**
-     * 状态修改
-     */
+     * 鐘舵€佷慨鏀?     */
     @RequiresPermissions("system:role:edit")
-    @Log(title = "角色管理", businessType = BusinessType.UPDATE)
+    @Log(title = "瑙掕壊绠＄悊", businessType = BusinessType.UPDATE)
     @PutMapping("/changeStatus")
     public AjaxResult changeStatus(@RequestBody SysRole role)
     {
@@ -147,19 +149,18 @@ public class SysRoleController extends BaseController
     }
 
     /**
-     * 删除角色
+     * 鍒犻櫎瑙掕壊
      */
     @RequiresPermissions("system:role:remove")
-    @Log(title = "角色管理", businessType = BusinessType.DELETE)
+    @Log(title = "瑙掕壊绠＄悊", businessType = BusinessType.DELETE)
     @DeleteMapping("/{roleIds}")
-    public AjaxResult remove(@PathVariable Long[] roleIds)
+    public AjaxResult remove(@PathVariable("roleIds") String roleIds)
     {
-        return toAjax(roleService.deleteRoleByIds(roleIds));
+        return toAjax(roleService.deleteRoleByIds(Convert.toLongArray(roleIds)));
     }
 
     /**
-     * 获取角色选择框列表
-     */
+     * 鑾峰彇瑙掕壊閫夋嫨妗嗗垪琛?     */
     @RequiresPermissions("system:role:query")
     @GetMapping("/optionselect")
     public AjaxResult optionselect()
@@ -167,8 +168,7 @@ public class SysRoleController extends BaseController
         return success(roleService.selectRoleAll());
     }
     /**
-     * 查询已分配用户角色列表
-     */
+     * 鏌ヨ宸插垎閰嶇敤鎴疯鑹插垪琛?     */
     @RequiresPermissions("system:role:list")
     @GetMapping("/authUser/allocatedList")
     public TableDataInfo allocatedList(SysUser user)
@@ -179,8 +179,7 @@ public class SysRoleController extends BaseController
     }
 
     /**
-     * 查询未分配用户角色列表
-     */
+     * 鏌ヨ鏈垎閰嶇敤鎴疯鑹插垪琛?     */
     @RequiresPermissions("system:role:list")
     @GetMapping("/authUser/unallocatedList")
     public TableDataInfo unallocatedList(SysUser user)
@@ -191,10 +190,10 @@ public class SysRoleController extends BaseController
     }
 
     /**
-     * 取消授权用户
+     * 鍙栨秷鎺堟潈鐢ㄦ埛
      */
     @RequiresPermissions("system:role:edit")
-    @Log(title = "角色管理", businessType = BusinessType.GRANT)
+    @Log(title = "瑙掕壊绠＄悊", businessType = BusinessType.GRANT)
     @PutMapping("/authUser/cancel")
     public AjaxResult cancelAuthUser(@RequestBody SysUserRole userRole)
     {
@@ -202,37 +201,38 @@ public class SysRoleController extends BaseController
     }
 
     /**
-     * 批量取消授权用户
+     * 鎵归噺鍙栨秷鎺堟潈鐢ㄦ埛
      */
     @RequiresPermissions("system:role:edit")
-    @Log(title = "角色管理", businessType = BusinessType.GRANT)
+    @Log(title = "瑙掕壊绠＄悊", businessType = BusinessType.GRANT)
     @PutMapping("/authUser/cancelAll")
-    public AjaxResult cancelAuthUserAll(Long roleId, Long[] userIds)
+    public AjaxResult cancelAuthUserAll(@RequestParam("roleId") String roleId, @RequestParam("userIds") String userIds)
     {
-        return toAjax(roleService.deleteAuthUsers(roleId, userIds));
+        return toAjax(roleService.deleteAuthUsers(Convert.toLong(roleId), Convert.toLongArray(userIds)));
     }
 
     /**
-     * 批量选择用户授权
+     * 鎵归噺閫夋嫨鐢ㄦ埛鎺堟潈
      */
     @RequiresPermissions("system:role:edit")
-    @Log(title = "角色管理", businessType = BusinessType.GRANT)
+    @Log(title = "瑙掕壊绠＄悊", businessType = BusinessType.GRANT)
     @PutMapping("/authUser/selectAll")
-    public AjaxResult selectAuthUserAll(Long roleId, Long[] userIds)
+    public AjaxResult selectAuthUserAll(@RequestParam("roleId") String roleId, @RequestParam("userIds") String userIds)
     {
-        roleService.checkRoleDataScope(roleId);
-        return toAjax(roleService.insertAuthUsers(roleId, userIds));
+        Long parsedRoleId = Convert.toLong(roleId);
+        roleService.checkRoleDataScope(parsedRoleId);
+        return toAjax(roleService.insertAuthUsers(parsedRoleId, Convert.toLongArray(userIds)));
     }
 
     /**
-     * 获取对应角色部门树列表
-     */
+     * 鑾峰彇瀵瑰簲瑙掕壊閮ㄩ棬鏍戝垪琛?     */
     @RequiresPermissions("system:role:query")
     @GetMapping(value = "/deptTree/{roleId}")
-    public AjaxResult deptTree(@PathVariable("roleId") Long roleId)
+    public AjaxResult deptTree(@PathVariable("roleId") String roleId)
     {
+        Long parsedRoleId = Convert.toLong(roleId);
         AjaxResult ajax = AjaxResult.success();
-        ajax.put("checkedKeys", deptService.selectDeptListByRoleId(roleId));
+        ajax.put("checkedKeys", deptService.selectDeptListByRoleId(parsedRoleId));
         ajax.put("depts", deptService.selectDeptTreeList(new SysDept()));
         return ajax;
     }
