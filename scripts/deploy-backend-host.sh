@@ -340,3 +340,5 @@ fi
 
 docker stats --no-stream --format '{{.Name}}\t{{.MemUsage}}' | grep -E 'ruoyi-(auth|system|file|gateway)' || true
 docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E 'ruoyi-(auth|system|file|gateway)' || true
+echo "--- ruoyi-file.log tail ---"
+tail -n 120 "${LOG_DIR}/ruoyi-file.log" 2>/dev/null || true
