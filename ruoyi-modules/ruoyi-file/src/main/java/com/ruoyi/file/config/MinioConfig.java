@@ -122,6 +122,8 @@ public class MinioConfig
     @Bean
     public MinioClient getMinioClient()
     {
-        return MinioClient.builder().endpoint(url).credentials(accessKey, secretKey).build();
+        MinioClient client = MinioClient.builder().endpoint(url).credentials(accessKey, secretKey).build();
+        client.disableVirtualStyleEndpoint();
+        return client;
     }
 }
