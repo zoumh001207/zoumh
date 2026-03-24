@@ -40,6 +40,11 @@ public class MinioConfig
     private boolean autoCreateBucket;
 
     /**
+     * S3 区域，部分兼容服务要求显式指定
+     */
+    private String region;
+
+    /**
      * 是否自动写入公开读桶策略
      */
     private boolean manageBucketPolicy;
@@ -109,6 +114,16 @@ public class MinioConfig
         this.autoCreateBucket = autoCreateBucket;
     }
 
+    public String getRegion()
+    {
+        return region;
+    }
+
+    public void setRegion(String region)
+    {
+        this.region = region;
+    }
+
     public boolean isManageBucketPolicy()
     {
         return manageBucketPolicy;
@@ -122,7 +137,12 @@ public class MinioConfig
     @Bean
     public MinioClient getMinioClient()
     {
-        MinioClient client = MinioClient.builder().endpoint(url).credentials(accessKey, secretKey).build();
+        MinioClient.Builder builder = MinioClient.builder().endpoint(url).credentials(accessKey, secretKey);
+        if (region != null && !region.isBlank())
+        {
+            builder.region(region);
+        }
+        MinioClient client = builder.build();
         client.disableVirtualStyleEndpoint();
         return client;
     }
