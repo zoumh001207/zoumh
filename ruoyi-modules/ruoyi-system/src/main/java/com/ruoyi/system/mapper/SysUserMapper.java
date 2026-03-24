@@ -116,7 +116,7 @@ public interface SysUserMapper
      * @param userIds 需要删除的用户ID
      * @return 结果
      */
-    public int deleteUserByIds(Long[] userIds);
+    public int deleteUserByIds(@Param("userIds") Long[] userIds);
 
     /**
      * 校验用户名称是否唯一

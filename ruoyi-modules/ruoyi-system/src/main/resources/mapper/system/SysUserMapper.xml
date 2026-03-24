@@ -219,7 +219,7 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
  	
  	<delete id="deleteUserByIds" parameterType="Long">
  		update sys_user set del_flag = '2' where user_id in
- 		<foreach collection="array" item="userId" open="(" separator="," close=")">
+ 		<foreach collection="userIds" item="userId" open="(" separator="," close=")">
  			#{userId}
         </foreach> 
  	</delete>

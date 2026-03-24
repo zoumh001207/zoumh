@@ -25,7 +25,7 @@ public interface SysUserRoleMapper
      * @param ids 需要删除的数据ID
      * @return 结果
      */
-    public int deleteUserRole(Long[] ids);
+    public int deleteUserRole(@Param("userIds") Long[] ids);
 
     /**
      * 通过角色ID查询角色使用数量

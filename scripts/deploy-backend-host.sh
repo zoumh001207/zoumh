@@ -190,6 +190,35 @@ ensure_jdk
 clean_host_java_env
 ensure_docker_shell_env
 
+cleanup_removed_module_menu_data() {
+  local sql
+  sql="$(cat <<'EOF'
+DELETE rm
+FROM sys_role_menu rm
+INNER JOIN sys_menu m ON m.menu_id = rm.menu_id
+WHERE m.perms LIKE 'hotel:monitor:%'
+   OR m.path = 'hotel'
+   OR m.path = 'monitor'
+   OR m.component = 'hotel/monitor/index'
+   OR m.route_name IN ('Hotel', 'HotelMonitor');
+
+DELETE FROM sys_menu
+WHERE perms LIKE 'hotel:monitor:%'
+   OR path = 'hotel'
+   OR path = 'monitor'
+   OR component = 'hotel/monitor/index'
+   OR route_name IN ('Hotel', 'HotelMonitor');
+EOF
+)"
+
+  if docker ps --format '{{.Names}}' | grep -qx 'mysql8'; then
+    docker exec -i mysql8 mysql -uroot -pzoumh zoumh -e "${sql}" >/dev/null
+    echo "removed stale zoumh-hotel-monitor menu data"
+  else
+    echo "skip menu cleanup: mysql8 container not running"
+  fi
+}
+
 docker rm -f "ruoyi-monitor" >/dev/null 2>&1 || true
 docker rm -f "ruoyi-job" >/dev/null 2>&1 || true
 docker rm -f "ruoyi-gen" >/dev/null 2>&1 || true
@@ -198,6 +227,9 @@ docker rm -f "zoumh-hotel-monitor" >/dev/null 2>&1 || true
 docker rm -f "qq-farm-bot-ui" >/dev/null 2>&1 || true
 docker rm -f "zentao" >/dev/null 2>&1 || true
 docker rm -f "minio" >/dev/null 2>&1 || true
+docker rm -f "kafka" >/dev/null 2>&1 || true
+docker rm -f "zookeeper" >/dev/null 2>&1 || true
+cleanup_removed_module_menu_data
 
 run_java_service() {
   local name="$1"
