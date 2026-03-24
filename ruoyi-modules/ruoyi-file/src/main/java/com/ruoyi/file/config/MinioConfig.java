@@ -40,6 +40,11 @@ public class MinioConfig
     private boolean autoCreateBucket;
 
     /**
+     * 是否启用 path-style 访问
+     */
+    private boolean pathStyleAccess = true;
+
+    /**
      * S3 区域，部分兼容服务要求显式指定
      */
     private String region;
@@ -114,6 +119,16 @@ public class MinioConfig
         this.autoCreateBucket = autoCreateBucket;
     }
 
+    public boolean isPathStyleAccess()
+    {
+        return pathStyleAccess;
+    }
+
+    public void setPathStyleAccess(boolean pathStyleAccess)
+    {
+        this.pathStyleAccess = pathStyleAccess;
+    }
+
     public String getRegion()
     {
         return region;
@@ -143,7 +158,14 @@ public class MinioConfig
             builder.region(region);
         }
         MinioClient client = builder.build();
-        client.disableVirtualStyleEndpoint();
+        if (pathStyleAccess)
+        {
+            client.disableVirtualStyleEndpoint();
+        }
+        else
+        {
+            client.enableVirtualStyleEndpoint();
+        }
         return client;
     }
 }
