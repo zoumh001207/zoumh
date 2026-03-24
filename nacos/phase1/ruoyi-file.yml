@@ -12,9 +12,19 @@ file:
   path: D:/ruoyi/uploadPath
   domain: https://zoumh.com
 
+storage:
+  type: ${STORAGE_TYPE:webdav}
+
 referer:
   enabled: false
   allowed-domains: []
+
+webdav:
+  enabled: ${WEBDAV_ENABLED:true}
+  url: ${WEBDAV_URL:https://data.cstcloud.cn/dav}
+  username: ${WEBDAV_USERNAME:zoumh}
+  password: ${WEBDAV_PASSWORD:zoumh}
+  publicUrl: ${WEBDAV_PUBLIC_URL:https://zoumh.com/prod-api/file/view}
 
 minio:
   url: ${MINIO_URL:https://s3.cstcloud.cn}

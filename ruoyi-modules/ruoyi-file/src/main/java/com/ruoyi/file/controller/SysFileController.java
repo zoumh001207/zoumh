@@ -1,8 +1,11 @@
 package com.ruoyi.file.controller;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -13,6 +16,7 @@ import com.ruoyi.common.core.domain.R;
 import com.ruoyi.common.core.utils.StringUtils;
 import com.ruoyi.common.core.utils.file.FileUtils;
 import com.ruoyi.file.service.ISysFileService;
+import com.ruoyi.file.service.WebDavSysFileServiceImpl;
 import com.ruoyi.system.api.domain.SysFile;
 
 /**
@@ -27,6 +31,9 @@ public class SysFileController
 
     @Autowired
     private ISysFileService sysFileService;
+
+    @Autowired(required = false)
+    private WebDavSysFileServiceImpl webDavSysFileService;
 
     /**
      * 文件上传请求
@@ -70,5 +77,19 @@ public class SysFileController
             log.error("删除文件失败", e);
             return R.fail(e.getMessage());
         }
+    }
+
+    /**
+     * WebDAV 文件代理访问
+     */
+    @GetMapping("view/{token}")
+    public void view(@PathVariable("token") String token, HttpServletResponse response) throws Exception
+    {
+        if (webDavSysFileService == null)
+        {
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            return;
+        }
+        webDavSysFileService.writeFileToResponse(token, response);
     }
 }

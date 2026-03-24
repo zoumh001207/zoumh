@@ -49,3 +49,4 @@ security:
       - /*/v2/api-docs
       - /*/v3/api-docs
       - /csrf
+      - /file/view/**

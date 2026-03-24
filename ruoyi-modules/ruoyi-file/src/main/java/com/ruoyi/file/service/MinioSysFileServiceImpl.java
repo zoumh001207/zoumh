@@ -4,6 +4,7 @@ import java.io.InputStream;
 
 import io.minio.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,6 +20,7 @@ import com.ruoyi.file.utils.FileUploadUtils;
  */
 @Service
 @Primary
+@ConditionalOnProperty(prefix = "storage", name = "type", havingValue = "s3")
 public class MinioSysFileServiceImpl implements ISysFileService
 {
     @Autowired
