@@ -94,7 +94,12 @@ public class MinioSysFileServiceImpl implements ISysFileService
         }
         catch (Exception e)
         {
-            throw new RuntimeException("Minio Failed to upload file", e);
+            Throwable root = e;
+            while (root.getCause() != null && root.getCause() != root)
+            {
+                root = root.getCause();
+            }
+            throw new RuntimeException("Minio Failed to upload file: " + root.getClass().getSimpleName() + ": " + root.getMessage(), e);
         }
         finally
         {
@@ -119,7 +124,12 @@ public class MinioSysFileServiceImpl implements ISysFileService
         }
         catch (Exception e)
         {
-            throw new RuntimeException("Minio Failed to delete file", e);
+            Throwable root = e;
+            while (root.getCause() != null && root.getCause() != root)
+            {
+                root = root.getCause();
+            }
+            throw new RuntimeException("Minio Failed to delete file: " + root.getClass().getSimpleName() + ": " + root.getMessage(), e);
         }
     }
 }
