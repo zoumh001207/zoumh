@@ -67,6 +67,10 @@ public class SysDictDataServiceImpl implements ISysDictDataService
         for (Long dictCode : dictCodes)
         {
             SysDictData data = selectDictDataById(dictCode);
+            if (data == null)
+            {
+                continue;
+            }
             dictDataMapper.deleteDictDataById(dictCode);
             List<SysDictData> dictDatas = dictDataMapper.selectDictDataByType(data.getDictType());
             DictUtils.setDictCache(data.getDictType(), dictDatas);
