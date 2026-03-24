@@ -34,6 +34,31 @@ public class MinioConfig
      */
     private String bucketName;
 
+    /**
+     * 是否自动创建桶
+     */
+    private boolean autoCreateBucket;
+
+    /**
+     * 是否自动写入公开读桶策略
+     */
+    private boolean manageBucketPolicy;
+
+    /**
+     * 文件访问域名（用于生成前端可访问的 HTTPS URL）
+     * 例如: https://zoumh.com/minio-data
+     */
+    private String domain;
+    public String getDomain()
+    {
+        return domain;
+    }
+
+    public void setDomain(String domain)
+    {
+        this.domain = domain;
+    }
+
     public String getUrl()
     {
         return url;
@@ -72,6 +97,26 @@ public class MinioConfig
     public void setBucketName(String bucketName)
     {
         this.bucketName = bucketName;
+    }
+
+    public boolean isAutoCreateBucket()
+    {
+        return autoCreateBucket;
+    }
+
+    public void setAutoCreateBucket(boolean autoCreateBucket)
+    {
+        this.autoCreateBucket = autoCreateBucket;
+    }
+
+    public boolean isManageBucketPolicy()
+    {
+        return manageBucketPolicy;
+    }
+
+    public void setManageBucketPolicy(boolean manageBucketPolicy)
+    {
+        this.manageBucketPolicy = manageBucketPolicy;
     }
 
     @Bean

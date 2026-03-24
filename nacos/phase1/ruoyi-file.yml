@@ -1,0 +1,26 @@
+server:
+  port: 9300
+
+spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 20MB
+
+file:
+  prefix: /profile
+  path: D:/ruoyi/uploadPath
+  domain: https://zoumh.com
+
+referer:
+  enabled: false
+  allowed-domains: []
+
+minio:
+  url: ${MINIO_URL:https://s3.cstcloud.cn}
+  accessKey: ${MINIO_ACCESS_KEY:AKIAIK64NPPYHO0YY81Y}
+  secretKey: ${MINIO_SECRET_KEY:C7NUU1AHM5BT8=B4X8HF5D89/ZROVWL/22E/NK/7}
+  bucketName: ${MINIO_BUCKET:zoumh}
+  autoCreateBucket: ${MINIO_AUTO_CREATE_BUCKET:false}
+  manageBucketPolicy: ${MINIO_MANAGE_BUCKET_POLICY:false}
+  domain: ${MINIO_DOMAIN:https://s3.cstcloud.cn}

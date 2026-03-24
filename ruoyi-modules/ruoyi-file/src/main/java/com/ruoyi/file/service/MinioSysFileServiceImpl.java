@@ -1,16 +1,16 @@
 package com.ruoyi.file.service;
 
 import java.io.InputStream;
+
+import io.minio.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Primary;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.alibaba.nacos.common.utils.IoUtils;
 import com.ruoyi.common.core.utils.StringUtils;
 import com.ruoyi.file.config.MinioConfig;
 import com.ruoyi.file.utils.FileUploadUtils;
-import io.minio.MinioClient;
-import io.minio.PutObjectArgs;
-import io.minio.RemoveObjectArgs;
 
 /**
  * Minio 文件存储
@@ -18,6 +18,7 @@ import io.minio.RemoveObjectArgs;
  * @author ruoyi
  */
 @Service
+@Primary
 public class MinioSysFileServiceImpl implements ISysFileService
 {
     @Autowired
@@ -41,6 +42,36 @@ public class MinioSysFileServiceImpl implements ISysFileService
         {
             String fileName = FileUploadUtils.extractFilename(file);
             inputStream = file.getInputStream();
+
+            boolean bucketExists = client.bucketExists(BucketExistsArgs.builder().bucket(minioConfig.getBucketName()).build());
+            if (!bucketExists && minioConfig.isAutoCreateBucket())
+            {
+                client.makeBucket(MakeBucketArgs.builder().bucket(minioConfig.getBucketName()).build());
+                bucketExists = true;
+            }
+
+            if (!bucketExists)
+            {
+                throw new IllegalStateException("Bucket does not exist: " + minioConfig.getBucketName());
+            }
+
+            if (minioConfig.isManageBucketPolicy())
+            {
+                String policyJson = "{\n" +
+                        "  \"Version\": \"2012-10-17\",\n" +
+                        "  \"Statement\": [{\n" +
+                        "    \"Effect\": \"Allow\",\n" +
+                        "    \"Principal\": {\"AWS\": [\"*\"]},\n" +
+                        "    \"Action\": [\"s3:GetObject\"],\n" +
+                        "    \"Resource\": [\"arn:aws:s3:::" + minioConfig.getBucketName() + "/*\"]\n" +
+                        "  }]\n" +
+                        "}";
+                client.setBucketPolicy(SetBucketPolicyArgs.builder()
+                        .bucket(minioConfig.getBucketName())
+                        .config(policyJson)
+                        .build());
+            }
+
             PutObjectArgs args = PutObjectArgs.builder()
                     .bucket(minioConfig.getBucketName())
                     .object(fileName)
@@ -48,7 +79,18 @@ public class MinioSysFileServiceImpl implements ISysFileService
                     .contentType(file.getContentType())
                     .build();
             client.putObject(args);
-            return minioConfig.getUrl() + "/" + minioConfig.getBucketName() + "/" + fileName;
+
+            String domain = minioConfig.getDomain();
+            if (StringUtils.isNotEmpty(domain))
+            {
+                // 外部 S3 兼容存储直接走公开访问域名
+                return domain + "/" + minioConfig.getBucketName() + "/" + fileName;
+            }
+            else
+            {
+                String url = minioConfig.getUrl().replace("http://", "https://");
+                return url + "/" + minioConfig.getBucketName() + "/" + fileName;
+            }
         }
         catch (Exception e)
         {
@@ -72,6 +114,7 @@ public class MinioSysFileServiceImpl implements ISysFileService
         try
         {
             String minioFile = StringUtils.substringAfter(fileUrl, minioConfig.getBucketName());
+            minioFile = StringUtils.stripStart(minioFile, "/");
             client.removeObject(RemoveObjectArgs.builder().bucket(minioConfig.getBucketName()).object(minioFile).build());
         }
         catch (Exception e)
