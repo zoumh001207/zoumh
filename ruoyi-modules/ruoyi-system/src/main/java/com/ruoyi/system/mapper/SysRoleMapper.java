@@ -25,7 +25,7 @@ public interface SysRoleMapper
      * @param userId 用户ID
      * @return 角色列表
      */
-    public List<SysRole> selectRolePermissionByUserId(Long userId);
+    public List<SysRole> selectRolePermissionByUserId(@Param("userId") Long userId);
 
     /**
      * 查询所有角色
@@ -40,7 +40,7 @@ public interface SysRoleMapper
      * @param userId 用户ID
      * @return 选中角色ID列表
      */
-    public List<Long> selectRoleListByUserId(Long userId);
+    public List<Long> selectRoleListByUserId(@Param("userId") Long userId);
 
     /**
      * 通过角色ID查询角色
@@ -48,7 +48,7 @@ public interface SysRoleMapper
      * @param roleId 角色ID
      * @return 角色对象信息
      */
-    public SysRole selectRoleById(Long roleId);
+    public SysRole selectRoleById(@Param("roleId") Long roleId);
 
     /**
      * 根据用户ID查询角色
@@ -96,7 +96,7 @@ public interface SysRoleMapper
      * @param roleId 角色ID
      * @return 结果
      */
-    public int deleteRoleById(Long roleId);
+    public int deleteRoleById(@Param("roleId") Long roleId);
 
     /**
      * 批量删除角色信息
