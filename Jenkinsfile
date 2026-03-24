@@ -8,7 +8,7 @@ pipeline {
 
     parameters {
         choice(name: 'BUILD_PROFILE', choices: ['prod', 'local'], description: 'Maven profile')
-        choice(name: 'BUILD_SCOPE', choices: ['all', 'gateway', 'auth', 'system', 'tools', 'hotel'], description: 'Build target')
+        choice(name: 'BUILD_SCOPE', choices: ['all', 'gateway', 'auth', 'system'], description: 'Build target')
         booleanParam(name: 'DEPLOY', defaultValue: true, description: 'Deploy to remote server')
         choice(name: 'DEPLOY_MODE', choices: ['local', 'ssh'], description: 'Deploy to local Jenkins server or remote SSH host')
         string(name: 'DEPLOY_DIR', defaultValue: '/zoumh/java/zmh/backend', description: 'Remote backend artifact directory')
@@ -46,9 +46,7 @@ pipeline {
                         all    : '',
                         gateway: '-pl ruoyi-gateway -am',
                         auth   : '-pl ruoyi-auth -am',
-                        system : '-pl ruoyi-modules/ruoyi-system -am',
-                        tools  : '-pl zoumh-modules/zoumh-tools -am',
-                        hotel  : '-pl zoumh-modules/zoumh-hotel-monitor -am'
+                        system : '-pl ruoyi-modules/ruoyi-system -am'
                     ]
                     def scopeArg = scopeMap[params.BUILD_SCOPE]
                     sh """
@@ -78,10 +76,7 @@ pipeline {
                             cp -f ruoyi-gateway/target/*.jar "${DEPLOY_DIR}/packages/" || true
                             cp -f ruoyi-auth/target/*.jar "${DEPLOY_DIR}/packages/" || true
                             cp -f ruoyi-modules/ruoyi-system/target/*.jar "${DEPLOY_DIR}/packages/" || true
-                            cp -f ruoyi-modules/ruoyi-gen/target/*.jar "${DEPLOY_DIR}/packages/" || true
                             cp -f ruoyi-modules/ruoyi-file/target/*.jar "${DEPLOY_DIR}/packages/" || true
-                            cp -f zoumh-modules/zoumh-tools/target/*.jar "${DEPLOY_DIR}/packages/" || true
-                            cp -f zoumh-modules/zoumh-hotel-monitor/target/*.jar "${DEPLOY_DIR}/packages/" || true
                             cp -f scripts/deploy-backend-host.sh "${DEPLOY_SCRIPT_DIR}/deploy-backend-host.sh"
                             cp -f docs/server-ops-guide.md "${DOCS_DIR}/server-ops-guide.md"
                             cp -f docs/server-ops-guide.md "${ROOT_DOC_PATH}"
@@ -96,10 +91,7 @@ pipeline {
                                 scp -o StrictHostKeyChecking=no ruoyi-gateway/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
                                 scp -o StrictHostKeyChecking=no ruoyi-auth/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
                                 scp -o StrictHostKeyChecking=no ruoyi-modules/ruoyi-system/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
-                                scp -o StrictHostKeyChecking=no ruoyi-modules/ruoyi-gen/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
                                 scp -o StrictHostKeyChecking=no ruoyi-modules/ruoyi-file/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
-                                scp -o StrictHostKeyChecking=no zoumh-modules/zoumh-tools/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
-                                scp -o StrictHostKeyChecking=no zoumh-modules/zoumh-hotel-monitor/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
                                 scp -o StrictHostKeyChecking=no scripts/deploy-backend-host.sh ${SSH_USER}@${SSH_HOST}:${DEPLOY_SCRIPT_DIR}/deploy-backend-host.sh
                                 scp -o StrictHostKeyChecking=no docs/server-ops-guide.md ${SSH_USER}@${SSH_HOST}:${DOCS_DIR}/server-ops-guide.md
                                 scp -o StrictHostKeyChecking=no docs/server-ops-guide.md ${SSH_USER}@${SSH_HOST}:'${ROOT_DOC_PATH}'

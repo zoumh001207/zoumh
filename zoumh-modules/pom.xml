@@ -12,11 +12,6 @@
     <artifactId>zoumh-modules</artifactId>
     <packaging>pom</packaging>
     <description>zoumh业务模块</description>
-    <modules>
-
-        <module>zoumh-tools</module>
-        <module>zoumh-hotel-monitor</module>
-    </modules>
 
     <properties>
         <maven.compiler.source>21</maven.compiler.source>

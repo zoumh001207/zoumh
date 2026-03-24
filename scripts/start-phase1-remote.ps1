@@ -42,10 +42,7 @@ $services = @(
   @{ Name = "ruoyi-system"; Path = "ruoyi-modules/ruoyi-system" },
   @{ Name = "ruoyi-auth"; Path = "ruoyi-auth" },
   @{ Name = "ruoyi-gateway"; Path = "ruoyi-gateway" },
-  @{ Name = "ruoyi-gen"; Path = "ruoyi-modules/ruoyi-gen" },
-  @{ Name = "ruoyi-file"; Path = "ruoyi-modules/ruoyi-file" },
-  @{ Name = "zoumh-tools"; Path = "zoumh-modules/zoumh-tools" },
-  @{ Name = "zoumh-hotel-monitor"; Path = "zoumh-modules/zoumh-hotel-monitor" }
+  @{ Name = "ruoyi-file"; Path = "ruoyi-modules/ruoyi-file" }
 )
 
 foreach ($svc in $services) {

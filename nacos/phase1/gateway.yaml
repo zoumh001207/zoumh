@@ -19,28 +19,10 @@ spring:
             - Path=/system/**
           filters:
             - StripPrefix=1
-        - id: gen
-          uri: lb://ruoyi-gen
-          predicates:
-            - Path=/code/**
-          filters:
-            - StripPrefix=1
         - id: file
           uri: lb://ruoyi-file
           predicates:
             - Path=/file/**
-          filters:
-            - StripPrefix=1
-        - id: tools
-          uri: lb://zoumh-tools
-          predicates:
-            - Path=/tools/**
-          filters:
-            - StripPrefix=1
-        - id: hotel
-          uri: lb://zoumh-hotel-monitor
-          predicates:
-            - Path=/hotel/**
           filters:
             - StripPrefix=1
         - id: monitor-online

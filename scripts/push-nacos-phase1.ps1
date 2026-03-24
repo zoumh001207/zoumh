@@ -26,9 +26,6 @@ $items = @(
   @{ DataIds = @('gateway', 'gateway.yaml', 'gateway-dev.yaml', 'ruoyi-gateway-dev.yml'); File = 'gateway.yaml'; Type = 'yaml' },
   @{ DataIds = @('zoumh-auth', 'zoumh-auth.yml', 'zoumh-auth-dev.yml', 'ruoyi-auth-dev.yml'); File = 'zoumh-auth.yml'; Type = 'yaml' },
   @{ DataIds = @('system', 'system.yml', 'system-dev.yml'); File = 'system.yml'; Type = 'yaml' },
-  @{ DataIds = @('zoumh-tools', 'zoumh-tools.yml', 'zoumh-tools-dev.yml'); File = 'zoumh-tools.yml'; Type = 'yaml' },
-  @{ DataIds = @('zoumh-hotel-monitor', 'zoumh-hotel-monitor.yml', 'zoumh-hotel-monitor-dev.yml'); File = 'zoumh-hotel-monitor.yml'; Type = 'yaml' },
-  @{ DataIds = @('ruoyi-gen', 'ruoyi-gen.yml', 'ruoyi-gen-dev.yml'); File = 'ruoyi-gen.yml'; Type = 'yaml' },
   @{ DataIds = @('ruoyi-file', 'ruoyi-file.yml', 'ruoyi-file-dev.yml'); File = 'ruoyi-file.yml'; Type = 'yaml' }
 )
 

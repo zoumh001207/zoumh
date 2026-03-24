@@ -29,10 +29,7 @@
 | `ruoyi-gateway` | `512m` | 网关入口，保留稍高余量 |
 | `ruoyi-system` | `512m` | 核心业务模块 |
 | `ruoyi-auth` | `288m` | 登录认证服务 |
-| `ruoyi-gen` | `288m` | 代码生成模块 |
 | `ruoyi-file` | `288m` | 文件服务 |
-| `zoumh-tools` | `288m` | 自定义工具模块 |
-| `zoumh-hotel-monitor` | `352m` | 酒店价格监控模块 |
 | `ruoyi-nginx` | `128m` | 前端反向代理与静态资源 |
 
 ## 基础服务建议内存

@@ -18,24 +18,15 @@ JAVA_TMPDIR="${JAVA_TMPDIR:-/tmp/zoumh-java}"
 DEFAULT_JAVA_OPTS="${DEFAULT_JAVA_OPTS:--Dfile.encoding=UTF-8 -Djava.security.egd=file:/dev/./urandom -Djava.io.tmpdir=/tmp/zoumh-java -XX:+UseG1GC -XX:+UseStringDeduplication -XX:+ExitOnOutOfMemoryError -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=64m -XX:MaxDirectMemorySize=80m}"
 JAVA_OPTS_AUTH="${JAVA_OPTS_AUTH:--Xms128m -Xmx320m}"
 JAVA_OPTS_SYSTEM="${JAVA_OPTS_SYSTEM:--Xms96m -Xmx320m}"
-JAVA_OPTS_GEN="${JAVA_OPTS_GEN:--Xms64m -Xmx160m}"
 JAVA_OPTS_FILE="${JAVA_OPTS_FILE:--Xms64m -Xmx160m}"
-JAVA_OPTS_TOOLS="${JAVA_OPTS_TOOLS:--Xms64m -Xmx160m}"
-JAVA_OPTS_HOTEL="${JAVA_OPTS_HOTEL:--Xms64m -Xmx224m}"
 JAVA_OPTS_GATEWAY="${JAVA_OPTS_GATEWAY:--Xms96m -Xmx320m -XX:MaxDirectMemorySize=128m}"
 DOCKER_MEMORY_AUTH="${DOCKER_MEMORY_AUTH:-512m}"
 DOCKER_MEMORY_SYSTEM="${DOCKER_MEMORY_SYSTEM:-512m}"
-DOCKER_MEMORY_GEN="${DOCKER_MEMORY_GEN:-288m}"
 DOCKER_MEMORY_FILE="${DOCKER_MEMORY_FILE:-288m}"
-DOCKER_MEMORY_TOOLS="${DOCKER_MEMORY_TOOLS:-288m}"
-DOCKER_MEMORY_HOTEL="${DOCKER_MEMORY_HOTEL:-352m}"
 DOCKER_MEMORY_GATEWAY="${DOCKER_MEMORY_GATEWAY:-512m}"
 DOCKER_MEMORY_RESERVATION_AUTH="${DOCKER_MEMORY_RESERVATION_AUTH:-256m}"
 DOCKER_MEMORY_RESERVATION_SYSTEM="${DOCKER_MEMORY_RESERVATION_SYSTEM:-224m}"
-DOCKER_MEMORY_RESERVATION_GEN="${DOCKER_MEMORY_RESERVATION_GEN:-128m}"
 DOCKER_MEMORY_RESERVATION_FILE="${DOCKER_MEMORY_RESERVATION_FILE:-128m}"
-DOCKER_MEMORY_RESERVATION_TOOLS="${DOCKER_MEMORY_RESERVATION_TOOLS:-128m}"
-DOCKER_MEMORY_RESERVATION_HOTEL="${DOCKER_MEMORY_RESERVATION_HOTEL:-160m}"
 DOCKER_MEMORY_RESERVATION_GATEWAY="${DOCKER_MEMORY_RESERVATION_GATEWAY:-224m}"
 DOCKER_PIDS_LIMIT="${DOCKER_PIDS_LIMIT:-256}"
 
@@ -201,6 +192,12 @@ ensure_docker_shell_env
 
 docker rm -f "ruoyi-monitor" >/dev/null 2>&1 || true
 docker rm -f "ruoyi-job" >/dev/null 2>&1 || true
+docker rm -f "ruoyi-gen" >/dev/null 2>&1 || true
+docker rm -f "zoumh-tools" >/dev/null 2>&1 || true
+docker rm -f "zoumh-hotel-monitor" >/dev/null 2>&1 || true
+docker rm -f "qq-farm-bot-ui" >/dev/null 2>&1 || true
+docker rm -f "zentao" >/dev/null 2>&1 || true
+docker rm -f "minio" >/dev/null 2>&1 || true
 
 run_java_service() {
   local name="$1"
@@ -263,41 +260,11 @@ run_java_service \
   -e "SPRING_CLOUD_NACOS_DISCOVERY_SERVICE=ruoyi-system"
 
 run_java_service \
-  "ruoyi-gen" \
-  "ruoyi-modules-gen.jar" \
-  "${JAVA_OPTS_GEN}" \
-  "${DOCKER_MEMORY_GEN}" \
-  "${DOCKER_MEMORY_RESERVATION_GEN}" \
-  -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
-  -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
-  -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
-
-run_java_service \
   "ruoyi-file" \
   "ruoyi-modules-file.jar" \
   "${JAVA_OPTS_FILE}" \
   "${DOCKER_MEMORY_FILE}" \
   "${DOCKER_MEMORY_RESERVATION_FILE}" \
-  -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
-  -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
-  -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
-
-run_java_service \
-  "zoumh-tools" \
-  "zoumh-tools.jar" \
-  "${JAVA_OPTS_TOOLS}" \
-  "${DOCKER_MEMORY_TOOLS}" \
-  "${DOCKER_MEMORY_RESERVATION_TOOLS}" \
-  -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
-  -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
-  -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
-
-run_java_service \
-  "zoumh-hotel-monitor" \
-  "zoumh-hotel-monitor.jar" \
-  "${JAVA_OPTS_HOTEL}" \
-  "${DOCKER_MEMORY_HOTEL}" \
-  "${DOCKER_MEMORY_RESERVATION_HOTEL}" \
   -e "SPRING_CLOUD_NACOS_SERVER_ADDR=${NACOS_ADDR}" \
   -e "SPRING_CLOUD_NACOS_USERNAME=${NACOS_USERNAME}" \
   -e "SPRING_CLOUD_NACOS_PASSWORD=${NACOS_PASSWORD}"
@@ -339,5 +306,5 @@ if printf '%s\n%s' "${probe_response}" "${gateway_probe}" | grep -Eq '"code":500
   tail -n 80 "${LOG_DIR}/ruoyi-system.log" 2>/dev/null || true
 fi
 
-docker stats --no-stream --format '{{.Name}}\t{{.MemUsage}}' | grep -E 'ruoyi-|zoumh-' || true
-docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E 'ruoyi-|zoumh-tools|zoumh-hotel-monitor' || true
+docker stats --no-stream --format '{{.Name}}\t{{.MemUsage}}' | grep -E 'ruoyi-(auth|system|file|gateway)' || true
+docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E 'ruoyi-(auth|system|file|gateway)' || true
