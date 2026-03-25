@@ -37,6 +37,8 @@ MINIO_DATA_DIR="${MINIO_DATA_DIR:-/zoumh/data/minio}"
 MINIO_CONSOLE_PORT="${MINIO_CONSOLE_PORT:-9001}"
 MINIO_API_PORT="${MINIO_API_PORT:-9000}"
 MINIO_NETWORK="${MINIO_NETWORK:-docker-compose_backend}"
+PUBLIC_NGINX_CONF_SOURCE="${PUBLIC_NGINX_CONF_SOURCE:-/zoumh/java/zmh/backend/nginx/nginx.conf}"
+PUBLIC_NGINX_CONF_TARGET="${PUBLIC_NGINX_CONF_TARGET:-/zoumh/data/nginx/conf/nginx.conf}"
 
 mkdir -p "${PACKAGE_DIR}" "${LOG_DIR}"
 
@@ -249,6 +251,39 @@ ensure_minio() {
   echo "started ${MINIO_CONTAINER_NAME}"
 }
 
+sync_public_nginx_conf() {
+  if [[ ! -f "${PUBLIC_NGINX_CONF_SOURCE}" ]]; then
+    echo "skip public nginx sync: source not found ${PUBLIC_NGINX_CONF_SOURCE}"
+    return 0
+  fi
+
+  mkdir -p "$(dirname "${PUBLIC_NGINX_CONF_TARGET}")"
+
+  local backup_file
+  backup_file="${PUBLIC_NGINX_CONF_TARGET}.bak.$(date +%Y%m%d%H%M%S)"
+  if [[ -f "${PUBLIC_NGINX_CONF_TARGET}" ]]; then
+    cp -f "${PUBLIC_NGINX_CONF_TARGET}" "${backup_file}"
+  fi
+
+  cp -f "${PUBLIC_NGINX_CONF_SOURCE}" "${PUBLIC_NGINX_CONF_TARGET}"
+
+  if docker ps --format '{{.Names}}' | grep -qx 'nginx'; then
+    if docker exec nginx nginx -t >/dev/null 2>&1; then
+      docker exec nginx nginx -s reload >/dev/null 2>&1 || docker restart nginx >/dev/null
+      echo "public nginx config synced and reloaded"
+    else
+      echo "public nginx config test failed, rolling back" >&2
+      if [[ -f "${backup_file}" ]]; then
+        cp -f "${backup_file}" "${PUBLIC_NGINX_CONF_TARGET}"
+        docker exec nginx nginx -t >/dev/null 2>&1 && docker exec nginx nginx -s reload >/dev/null 2>&1 || docker restart nginx >/dev/null 2>&1 || true
+      fi
+      return 1
+    fi
+  else
+    echo "public nginx config synced; nginx container not running, skip reload"
+  fi
+}
+
 docker rm -f "ruoyi-monitor" >/dev/null 2>&1 || true
 docker rm -f "ruoyi-job" >/dev/null 2>&1 || true
 docker rm -f "ruoyi-gen" >/dev/null 2>&1 || true
@@ -260,6 +295,7 @@ docker rm -f "kafka" >/dev/null 2>&1 || true
 docker rm -f "zookeeper" >/dev/null 2>&1 || true
 cleanup_removed_module_menu_data
 ensure_minio
+sync_public_nginx_conf
 
 run_java_service() {
   local name="$1"
