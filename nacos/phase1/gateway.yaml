@@ -46,6 +46,7 @@ security:
       - /auth/login
       - /auth/register
       - /auth/logout
+      - /system/music/**
       - /*/v2/api-docs
       - /*/v3/api-docs
       - /csrf
