@@ -36,6 +36,7 @@ MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-zoumh0012078070}"
 MINIO_DATA_DIR="${MINIO_DATA_DIR:-/zoumh/data/minio}"
 MINIO_CONSOLE_PORT="${MINIO_CONSOLE_PORT:-9001}"
 MINIO_API_PORT="${MINIO_API_PORT:-9000}"
+MINIO_NETWORK="${MINIO_NETWORK:-docker-compose_backend}"
 
 mkdir -p "${PACKAGE_DIR}" "${LOG_DIR}"
 
@@ -232,6 +233,7 @@ ensure_minio() {
   docker run -d \
     --name "${MINIO_CONTAINER_NAME}" \
     --restart unless-stopped \
+    --network "${MINIO_NETWORK}" \
     -p "${MINIO_API_PORT}:9000" \
     -p "${MINIO_CONSOLE_PORT}:9001" \
     --memory="384m" \
