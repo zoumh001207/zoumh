@@ -13,26 +13,26 @@ file:
   domain: https://zoumh.com
 
 storage:
-  type: ${STORAGE_TYPE:webdav}
+  type: ${STORAGE_TYPE:s3}
 
 referer:
   enabled: false
   allowed-domains: []
 
 webdav:
-  enabled: ${WEBDAV_ENABLED:true}
+  enabled: ${WEBDAV_ENABLED:false}
   url: ${WEBDAV_URL:https://data.cstcloud.cn/dav}
   username: ${WEBDAV_USERNAME:zoumh}
   password: ${WEBDAV_PASSWORD:zoumh}
   publicUrl: ${WEBDAV_PUBLIC_URL:https://zoumh.com/prod-api/file/view}
 
 minio:
-  url: ${MINIO_URL:https://s3.cstcloud.cn}
-  accessKey: ${MINIO_ACCESS_KEY:AKIAKPVAL7O24XRGWFSP}
-  secretKey: ${MINIO_SECRET_KEY:Y=F+7+KX085FNQK8YA5T30PK9LE/BZPPFT/5X/2W}
-  bucketName: ${MINIO_BUCKET:zoumh}
-  autoCreateBucket: ${MINIO_AUTO_CREATE_BUCKET:false}
-  pathStyleAccess: ${MINIO_PATH_STYLE_ACCESS:false}
-  region: ${MINIO_REGION:us-east-1}
-  manageBucketPolicy: ${MINIO_MANAGE_BUCKET_POLICY:false}
-  domain: ${MINIO_DOMAIN:https://s3.cstcloud.cn}
+  url: ${MINIO_URL:http://127.0.0.1:9000}
+  accessKey: ${MINIO_ACCESS_KEY:minio}
+  secretKey: ${MINIO_SECRET_KEY:zoumh0012078070}
+  bucketName: ${MINIO_BUCKET:ruoyi}
+  autoCreateBucket: ${MINIO_AUTO_CREATE_BUCKET:true}
+  pathStyleAccess: ${MINIO_PATH_STYLE_ACCESS:true}
+  region: ${MINIO_REGION:}
+  manageBucketPolicy: ${MINIO_MANAGE_BUCKET_POLICY:true}
+  domain: ${MINIO_DOMAIN:https://zoumh.com/minio-data}

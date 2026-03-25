@@ -29,6 +29,13 @@ DOCKER_MEMORY_RESERVATION_SYSTEM="${DOCKER_MEMORY_RESERVATION_SYSTEM:-224m}"
 DOCKER_MEMORY_RESERVATION_FILE="${DOCKER_MEMORY_RESERVATION_FILE:-128m}"
 DOCKER_MEMORY_RESERVATION_GATEWAY="${DOCKER_MEMORY_RESERVATION_GATEWAY:-224m}"
 DOCKER_PIDS_LIMIT="${DOCKER_PIDS_LIMIT:-256}"
+MINIO_IMAGE="${MINIO_IMAGE:-docker.1ms.run/minio/minio:latest}"
+MINIO_CONTAINER_NAME="${MINIO_CONTAINER_NAME:-minio}"
+MINIO_ROOT_USER="${MINIO_ROOT_USER:-minio}"
+MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD:-zoumh0012078070}"
+MINIO_DATA_DIR="${MINIO_DATA_DIR:-/zoumh/data/minio}"
+MINIO_CONSOLE_PORT="${MINIO_CONSOLE_PORT:-9001}"
+MINIO_API_PORT="${MINIO_API_PORT:-9000}"
 
 mkdir -p "${PACKAGE_DIR}" "${LOG_DIR}"
 
@@ -219,6 +226,27 @@ EOF
   fi
 }
 
+ensure_minio() {
+  mkdir -p "${MINIO_DATA_DIR}"
+  docker rm -f "${MINIO_CONTAINER_NAME}" >/dev/null 2>&1 || true
+  docker run -d \
+    --name "${MINIO_CONTAINER_NAME}" \
+    --restart unless-stopped \
+    -p "${MINIO_API_PORT}:9000" \
+    -p "${MINIO_CONSOLE_PORT}:9001" \
+    --memory="384m" \
+    --memory-reservation="128m" \
+    --pids-limit="128" \
+    --log-opt max-size=20m \
+    --log-opt max-file=3 \
+    -e TZ="${TZ_NAME}" \
+    -e MINIO_ROOT_USER="${MINIO_ROOT_USER}" \
+    -e MINIO_ROOT_PASSWORD="${MINIO_ROOT_PASSWORD}" \
+    -v "${MINIO_DATA_DIR}:/data" \
+    "${MINIO_IMAGE}" server /data --console-address ":9001"
+  echo "started ${MINIO_CONTAINER_NAME}"
+}
+
 docker rm -f "ruoyi-monitor" >/dev/null 2>&1 || true
 docker rm -f "ruoyi-job" >/dev/null 2>&1 || true
 docker rm -f "ruoyi-gen" >/dev/null 2>&1 || true
@@ -226,10 +254,10 @@ docker rm -f "zoumh-tools" >/dev/null 2>&1 || true
 docker rm -f "zoumh-hotel-monitor" >/dev/null 2>&1 || true
 docker rm -f "qq-farm-bot-ui" >/dev/null 2>&1 || true
 docker rm -f "zentao" >/dev/null 2>&1 || true
-docker rm -f "minio" >/dev/null 2>&1 || true
 docker rm -f "kafka" >/dev/null 2>&1 || true
 docker rm -f "zookeeper" >/dev/null 2>&1 || true
 cleanup_removed_module_menu_data
+ensure_minio
 
 run_java_service() {
   local name="$1"
@@ -342,3 +370,5 @@ docker stats --no-stream --format '{{.Name}}\t{{.MemUsage}}' | grep -E 'ruoyi-(a
 docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E 'ruoyi-(auth|system|file|gateway)' || true
 echo "--- ruoyi-file.log tail ---"
 tail -n 120 "${LOG_DIR}/ruoyi-file.log" 2>/dev/null || true
+echo "--- restarting containers ---"
+docker ps -a --filter status=restarting --format 'table {{.Names}}\t{{.Status}}' || true
