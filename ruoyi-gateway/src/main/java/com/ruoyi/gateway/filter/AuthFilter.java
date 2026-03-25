@@ -19,6 +19,7 @@ import com.ruoyi.common.core.utils.StringUtils;
 import com.ruoyi.common.redis.service.RedisService;
 import com.ruoyi.gateway.config.properties.IgnoreWhiteProperties;
 import io.jsonwebtoken.Claims;
+import java.util.Collections;
 import reactor.core.publisher.Mono;
 
 /**
@@ -46,7 +47,7 @@ public class AuthFilter implements GlobalFilter, Ordered
         ServerHttpRequest.Builder mutate = request.mutate();
 
         String url = request.getURI().getPath();
-        if (StringUtils.matches(url, "/system/music/**"))
+        if (StringUtils.matches(url, Collections.singletonList("/system/music/**")))
         {
             return chain.filter(exchange);
         }
