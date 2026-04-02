@@ -24,8 +24,21 @@ CREATE TABLE IF NOT EXISTS social_user_profile (
   UNIQUE KEY uk_social_user_profile_user (user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='社交用户资料';
 
-ALTER TABLE social_user_profile
-  ADD COLUMN IF NOT EXISTS remark VARCHAR(500) DEFAULT '' COMMENT '备注';
+SET @social_profile_remark_exists := (
+  SELECT COUNT(*)
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'social_user_profile'
+    AND COLUMN_NAME = 'remark'
+);
+SET @social_profile_remark_sql := IF(
+  @social_profile_remark_exists = 0,
+  'ALTER TABLE social_user_profile ADD COLUMN remark VARCHAR(500) DEFAULT '''' COMMENT ''备注''',
+  'SELECT 1'
+);
+PREPARE social_profile_remark_stmt FROM @social_profile_remark_sql;
+EXECUTE social_profile_remark_stmt;
+DEALLOCATE PREPARE social_profile_remark_stmt;
 
 CREATE TABLE IF NOT EXISTS social_user_media (
   media_id BIGINT NOT NULL AUTO_INCREMENT COMMENT '媒体ID',
