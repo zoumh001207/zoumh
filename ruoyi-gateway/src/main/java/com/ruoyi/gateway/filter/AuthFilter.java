@@ -51,6 +51,10 @@ public class AuthFilter implements GlobalFilter, Ordered
         {
             return chain.filter(exchange);
         }
+        if (StringUtils.matches(url, Collections.singletonList("/system/social/public/**")))
+        {
+            return chain.filter(exchange);
+        }
         // 跳过不需要验证的路径
         if (StringUtils.matches(url, ignoreWhite.getWhites()))
         {

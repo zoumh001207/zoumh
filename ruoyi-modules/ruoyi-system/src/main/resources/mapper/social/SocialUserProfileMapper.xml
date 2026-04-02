@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.social.SocialUserProfileMapper">
+
+    <resultMap id="SocialUserProfileResult" type="com.ruoyi.system.domain.social.SocialUserProfile">
+        <id property="profileId" column="profile_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="nickname" column="nickname"/>
+        <result property="gender" column="gender"/>
+        <result property="cityCode" column="city_code"/>
+        <result property="profession" column="profession"/>
+        <result property="relationshipGoal" column="relationship_goal"/>
+        <result property="avatarUrl" column="avatar_url"/>
+        <result property="bio" column="bio"/>
+        <result property="albumCount" column="album_count"/>
+        <result property="realVerified" column="real_verified"/>
+        <result property="profileStatus" column="profile_status"/>
+        <result property="remark" column="remark"/>
+        <result property="createBy" column="created_by"/>
+        <result property="createTime" column="created_at"/>
+        <result property="updateBy" column="updated_by"/>
+        <result property="updateTime" column="updated_at"/>
+    </resultMap>
+
+    <sql id="selectSocialUserProfileVo">
+        select
+            profile_id,
+            user_id,
+            nickname,
+            gender,
+            city_code,
+            profession,
+            relationship_goal,
+            avatar_url,
+            bio,
+            album_count,
+            real_verified,
+            profile_status,
+            remark,
+            created_by,
+            created_at,
+            updated_by,
+            updated_at
+        from social_user_profile
+    </sql>
+
+    <select id="selectSocialUserProfileById" resultMap="SocialUserProfileResult">
+        <include refid="selectSocialUserProfileVo"/>
+        where profile_id = #{profileId}
+    </select>
+
+    <select id="selectSocialUserProfileList" parameterType="com.ruoyi.system.domain.social.SocialUserProfile" resultMap="SocialUserProfileResult">
+        <include refid="selectSocialUserProfileVo"/>
+        <where>
+            <if test="userId != null">and user_id = #{userId}</if>
+            <if test="nickname != null and nickname != ''">and nickname like concat('%', #{nickname}, '%')</if>
+            <if test="gender != null and gender != ''">and gender = #{gender}</if>
+            <if test="cityCode != null and cityCode != ''">and city_code like concat('%', #{cityCode}, '%')</if>
+            <if test="relationshipGoal != null and relationshipGoal != ''">and relationship_goal = #{relationshipGoal}</if>
+            <if test="realVerified != null and realVerified != ''">and real_verified = #{realVerified}</if>
+            <if test="profileStatus != null and profileStatus != ''">and profile_status = #{profileStatus}</if>
+        </where>
+        order by profile_id desc
+    </select>
+
+    <insert id="insertSocialUserProfile" parameterType="com.ruoyi.system.domain.social.SocialUserProfile" useGeneratedKeys="true" keyProperty="profileId">
+        insert into social_user_profile (
+            user_id, nickname, gender, city_code, profession, relationship_goal, avatar_url, bio,
+            album_count, real_verified, profile_status, remark, created_by, created_at, updated_by, updated_at
+        ) values (
+            #{userId}, #{nickname}, #{gender}, #{cityCode}, #{profession}, #{relationshipGoal}, #{avatarUrl}, #{bio},
+            #{albumCount}, #{realVerified}, #{profileStatus}, #{remark}, #{createBy}, now(), #{updateBy}, now()
+        )
+    </insert>
+
+    <update id="updateSocialUserProfile" parameterType="com.ruoyi.system.domain.social.SocialUserProfile">
+        update social_user_profile
+        <set>
+            <if test="userId != null">user_id = #{userId},</if>
+            <if test="nickname != null">nickname = #{nickname},</if>
+            <if test="gender != null">gender = #{gender},</if>
+            <if test="cityCode != null">city_code = #{cityCode},</if>
+            <if test="profession != null">profession = #{profession},</if>
+            <if test="relationshipGoal != null">relationship_goal = #{relationshipGoal},</if>
+            <if test="avatarUrl != null">avatar_url = #{avatarUrl},</if>
+            <if test="bio != null">bio = #{bio},</if>
+            <if test="albumCount != null">album_count = #{albumCount},</if>
+            <if test="realVerified != null">real_verified = #{realVerified},</if>
+            <if test="profileStatus != null">profile_status = #{profileStatus},</if>
+            <if test="remark != null">remark = #{remark},</if>
+            <if test="updateBy != null">updated_by = #{updateBy},</if>
+            updated_at = now()
+        </set>
+        where profile_id = #{profileId}
+    </update>
+
+    <delete id="deleteSocialUserProfileById">
+        delete from social_user_profile where profile_id = #{profileId}
+    </delete>
+
+    <delete id="deleteSocialUserProfileByIds">
+        delete from social_user_profile where profile_id in
+        <foreach collection="array" item="profileId" open="(" separator="," close=")">
+            #{profileId}
+        </foreach>
+    </delete>
+</mapper>
