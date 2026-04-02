@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 import com.ruoyi.common.core.constant.UserConstants;
 import com.ruoyi.common.core.exception.ServiceException;
+import com.ruoyi.common.core.text.Convert;
 import com.ruoyi.common.core.utils.SpringUtils;
 import com.ruoyi.common.core.utils.StringUtils;
 import com.ruoyi.common.core.utils.bean.BeanValidators;
@@ -27,6 +28,7 @@ import com.ruoyi.system.mapper.SysRoleMapper;
 import com.ruoyi.system.mapper.SysUserMapper;
 import com.ruoyi.system.mapper.SysUserPostMapper;
 import com.ruoyi.system.mapper.SysUserRoleMapper;
+import com.ruoyi.system.service.social.ISocialAppService;
 import com.ruoyi.system.service.ISysConfigService;
 import com.ruoyi.system.service.ISysDeptService;
 import com.ruoyi.system.service.ISysUserService;
@@ -61,6 +63,9 @@ public class SysUserServiceImpl implements ISysUserService
 
     @Autowired
     private ISysDeptService deptService;
+
+    @Autowired
+    private ISocialAppService socialAppService;
 
     @Autowired
     protected Validator validator;
@@ -276,9 +281,27 @@ public class SysUserServiceImpl implements ISysUserService
      * @return 结果
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean registerUser(SysUser user)
     {
-        return userMapper.insertUser(user) > 0;
+        if (StringUtils.isNull(user.getDeptId()))
+        {
+            user.setDeptId(100L);
+        }
+        if (StringUtils.isBlank(user.getNickName()))
+        {
+            user.setNickName(user.getUserName());
+        }
+        int rows = userMapper.insertUser(user);
+        if (rows <= 0)
+        {
+            return false;
+        }
+
+        Long registerRoleId = Convert.toLong(configService.selectConfigByKey("sys.account.registerRoleId"), 2L);
+        insertUserRole(user.getUserId(), new Long[] { registerRoleId });
+        socialAppService.initSocialProfileForUser(user.getUserId(), user.getUserName(), user.getNickName());
+        return true;
     }
 
     /**

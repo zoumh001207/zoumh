@@ -1,5 +1,6 @@
 package com.ruoyi.system.service.social.impl;
 
+import com.ruoyi.common.security.utils.SecurityUtils;
 import com.ruoyi.system.domain.social.SocialAdminOverview;
 import com.ruoyi.system.domain.social.SocialChannelCard;
 import com.ruoyi.system.domain.social.SocialFeatureCard;
@@ -87,10 +88,21 @@ public class SocialProductServiceImpl implements ISocialProductService
         SocialUserProfile query = new SocialUserProfile();
         query.setProfileStatus("A");
         List<SocialUserProfile> profiles = socialUserProfileService.selectSocialUserProfileList(query);
+        Long currentUserId = null;
+        try
+        {
+            currentUserId = SecurityUtils.getUserId();
+        }
+        catch (Exception ignored)
+        {
+        }
+        final Long currentUserIdValue = currentUserId;
         return profiles.stream()
+            .filter(item -> currentUserIdValue == null || !currentUserIdValue.equals(item.getUserId()))
             .limit(6)
             .map(item -> new SocialPublicProfileCard(
                 item.getProfileId(),
+                item.getUserId(),
                 item.getNickname(),
                 item.getGender(),
                 item.getCityCode(),

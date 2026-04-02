@@ -75,6 +75,37 @@ CREATE TABLE IF NOT EXISTS social_match_record (
   KEY idx_social_match_user_b (user_b)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='双向匹配记录';
 
+CREATE TABLE IF NOT EXISTS social_chat_conversation (
+  conversation_id BIGINT NOT NULL AUTO_INCREMENT COMMENT '会话ID',
+  user_a BIGINT NOT NULL COMMENT '用户A',
+  user_b BIGINT NOT NULL COMMENT '用户B',
+  last_sender_id BIGINT DEFAULT NULL COMMENT '最后发送人',
+  last_message VARCHAR(1000) DEFAULT '' COMMENT '最后一条消息',
+  last_message_time DATETIME DEFAULT NULL COMMENT '最后消息时间',
+  user_a_unread INT NOT NULL DEFAULT 0 COMMENT 'A未读数',
+  user_b_unread INT NOT NULL DEFAULT 0 COMMENT 'B未读数',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  PRIMARY KEY (conversation_id),
+  UNIQUE KEY uk_social_chat_pair (user_a, user_b),
+  KEY idx_social_chat_updated (updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='社交聊天会话';
+
+CREATE TABLE IF NOT EXISTS social_chat_message (
+  message_id BIGINT NOT NULL AUTO_INCREMENT COMMENT '消息ID',
+  conversation_id BIGINT NOT NULL COMMENT '会话ID',
+  from_user_id BIGINT NOT NULL COMMENT '发送者',
+  to_user_id BIGINT NOT NULL COMMENT '接收者',
+  message_type VARCHAR(16) NOT NULL DEFAULT 'TEXT' COMMENT '消息类型',
+  content VARCHAR(1000) NOT NULL DEFAULT '' COMMENT '消息内容',
+  read_status CHAR(1) NOT NULL DEFAULT 'N' COMMENT '已读状态',
+  read_at DATETIME DEFAULT NULL COMMENT '已读时间',
+  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '发送时间',
+  PRIMARY KEY (message_id),
+  KEY idx_social_chat_message_conv (conversation_id),
+  KEY idx_social_chat_message_to (to_user_id, read_status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='社交聊天消息';
+
 CREATE TABLE IF NOT EXISTS social_report_record (
   report_id BIGINT NOT NULL AUTO_INCREMENT COMMENT '举报ID',
   reporter_user_id BIGINT NOT NULL COMMENT '举报人',

@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.social.SocialConnectionMapper">
+
+    <resultMap id="SocialConnectionProfileResult" type="com.ruoyi.system.domain.social.SocialUserProfile">
+        <id property="profileId" column="profile_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="nickname" column="nickname"/>
+        <result property="gender" column="gender"/>
+        <result property="cityCode" column="city_code"/>
+        <result property="profession" column="profession"/>
+        <result property="relationshipGoal" column="relationship_goal"/>
+        <result property="avatarUrl" column="avatar_url"/>
+        <result property="bio" column="bio"/>
+        <result property="albumCount" column="album_count"/>
+        <result property="realVerified" column="real_verified"/>
+        <result property="profileStatus" column="profile_status"/>
+        <result property="remark" column="remark"/>
+        <result property="createBy" column="created_by"/>
+        <result property="createTime" column="created_at"/>
+        <result property="updateBy" column="updated_by"/>
+        <result property="updateTime" column="updated_at"/>
+    </resultMap>
+
+    <insert id="insertLikeRecord">
+        insert into social_like_record (from_user_id, to_user_id, action_type, matched, created_at)
+        values (#{fromUserId}, #{toUserId}, #{actionType}, #{matched}, now())
+    </insert>
+
+    <select id="countReverseLike" resultType="java.lang.Integer">
+        select count(1)
+        from social_like_record
+        where from_user_id = #{fromUserId}
+          and to_user_id = #{toUserId}
+          and action_type = 'LIKE'
+    </select>
+
+    <update id="markMatchedBetweenUsers">
+        update social_like_record
+        set matched = 'Y'
+        where action_type = 'LIKE'
+          and ((from_user_id = #{userA} and to_user_id = #{userB})
+            or (from_user_id = #{userB} and to_user_id = #{userA}))
+    </update>
+
+    <select id="countMatchRecord" resultType="java.lang.Integer">
+        select count(1)
+        from social_match_record
+        where user_a = #{userA}
+          and user_b = #{userB}
+    </select>
+
+    <insert id="insertMatchRecord">
+        insert into social_match_record (user_a, user_b, match_status, created_at)
+        values (#{userA}, #{userB}, 'ACTIVE', now())
+    </insert>
+
+    <select id="selectLikedProfilesByUserId" resultMap="SocialConnectionProfileResult">
+        select p.profile_id, p.user_id, p.nickname, p.gender, p.city_code, p.profession, p.relationship_goal,
+               p.avatar_url, p.bio, p.album_count, p.real_verified, p.profile_status, p.remark,
+               p.created_by, p.created_at, p.updated_by, p.updated_at
+        from social_user_profile p
+        inner join (
+            select to_user_id, max(created_at) as latest_time
+            from social_like_record
+            where from_user_id = #{userId}
+              and action_type = 'LIKE'
+            group by to_user_id
+        ) latest on latest.to_user_id = p.user_id
+        where p.profile_status = 'A'
+        order by latest.latest_time desc
+    </select>
+
+    <select id="selectMatchedProfilesByUserId" resultMap="SocialConnectionProfileResult">
+        select p.profile_id, p.user_id, p.nickname, p.gender, p.city_code, p.profession, p.relationship_goal,
+               p.avatar_url, p.bio, p.album_count, p.real_verified, p.profile_status, p.remark,
+               p.created_by, p.created_at, p.updated_by, p.updated_at
+        from social_user_profile p
+        inner join social_match_record m
+            on ((m.user_a = #{userId} and m.user_b = p.user_id) or (m.user_b = #{userId} and m.user_a = p.user_id))
+        where p.profile_status = 'A'
+          and m.match_status = 'ACTIVE'
+        order by m.created_at desc
+    </select>
+
+    <select id="selectLikedTargetUserIdsByUserId" resultType="java.lang.Long">
+        select distinct to_user_id
+        from social_like_record
+        where from_user_id = #{userId}
+          and action_type = 'LIKE'
+    </select>
+</mapper>

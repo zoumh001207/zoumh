@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ruoyi.system.mapper.social.SocialChatMapper">
+
+    <resultMap id="SocialChatConversationResult" type="com.ruoyi.system.domain.social.chat.SocialChatConversation">
+        <id property="conversationId" column="conversation_id"/>
+        <result property="userA" column="user_a"/>
+        <result property="userB" column="user_b"/>
+        <result property="lastSenderId" column="last_sender_id"/>
+        <result property="lastMessage" column="last_message"/>
+        <result property="lastMessageTime" column="last_message_time"/>
+        <result property="userAUnread" column="user_a_unread"/>
+        <result property="userBUnread" column="user_b_unread"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="SocialChatConversationVOResult" type="com.ruoyi.system.domain.social.chat.SocialChatConversationVO">
+        <id property="conversationId" column="conversation_id"/>
+        <result property="peerUserId" column="peer_user_id"/>
+        <result property="peerNickname" column="peer_nickname"/>
+        <result property="peerAvatarUrl" column="peer_avatar_url"/>
+        <result property="peerCityCode" column="peer_city_code"/>
+        <result property="peerProfession" column="peer_profession"/>
+        <result property="lastMessage" column="last_message"/>
+        <result property="lastSenderId" column="last_sender_id"/>
+        <result property="lastMessageTime" column="last_message_time"/>
+        <result property="unreadCount" column="unread_count"/>
+    </resultMap>
+
+    <resultMap id="SocialChatMessageVOResult" type="com.ruoyi.system.domain.social.chat.SocialChatMessageVO">
+        <id property="messageId" column="message_id"/>
+        <result property="conversationId" column="conversation_id"/>
+        <result property="fromUserId" column="from_user_id"/>
+        <result property="toUserId" column="to_user_id"/>
+        <result property="messageType" column="message_type"/>
+        <result property="content" column="content"/>
+        <result property="readStatus" column="read_status"/>
+        <result property="createdAt" column="created_at"/>
+    </resultMap>
+
+    <select id="countActiveMatchBetweenUsers" resultType="java.lang.Integer">
+        select count(1)
+        from social_match_record
+        where user_a = #{userA}
+          and user_b = #{userB}
+          and match_status = 'ACTIVE'
+    </select>
+
+    <select id="selectConversationBetweenUsers" resultMap="SocialChatConversationResult">
+        select conversation_id, user_a, user_b, last_sender_id, last_message, last_message_time,
+               user_a_unread, user_b_unread, created_at, updated_at
+        from social_chat_conversation
+        where user_a = #{userA}
+          and user_b = #{userB}
+        limit 1
+    </select>
+
+    <insert id="insertConversation" parameterType="com.ruoyi.system.domain.social.chat.SocialChatConversation"
+            useGeneratedKeys="true" keyProperty="conversationId">
+        insert into social_chat_conversation (
+            user_a, user_b, last_sender_id, last_message, last_message_time,
+            user_a_unread, user_b_unread, created_at, updated_at
+        ) values (
+            #{userA}, #{userB}, #{lastSenderId}, #{lastMessage}, now(),
+            0, 0, now(), now()
+        )
+    </insert>
+
+    <update id="updateConversationAfterSend">
+        update social_chat_conversation
+        set last_sender_id = #{lastSenderId},
+            last_message = #{lastMessage},
+            last_message_time = now(),
+            updated_at = now(),
+            user_a_unread = case when user_a = #{receiverUserId} then user_a_unread + 1 else user_a_unread end,
+            user_b_unread = case when user_b = #{receiverUserId} then user_b_unread + 1 else user_b_unread end
+        where conversation_id = #{conversationId}
+    </update>
+
+    <select id="selectConversationListByUserId" resultMap="SocialChatConversationVOResult">
+        select c.conversation_id,
+               case when c.user_a = #{userId} then c.user_b else c.user_a end as peer_user_id,
+               p.nickname as peer_nickname,
+               p.avatar_url as peer_avatar_url,
+               p.city_code as peer_city_code,
+               p.profession as peer_profession,
+               c.last_message,
+               c.last_sender_id,
+               c.last_message_time,
+               case when c.user_a = #{userId} then c.user_a_unread else c.user_b_unread end as unread_count
+        from social_chat_conversation c
+        inner join social_user_profile p
+            on p.user_id = case when c.user_a = #{userId} then c.user_b else c.user_a end
+        where c.user_a = #{userId} or c.user_b = #{userId}
+        order by c.last_message_time desc, c.updated_at desc
+    </select>
+
+    <select id="selectMessagesByConversationId" resultMap="SocialChatMessageVOResult">
+        select message_id, conversation_id, from_user_id, to_user_id, message_type, content, read_status, created_at
+        from social_chat_message
+        where conversation_id = #{conversationId}
+        order by created_at asc, message_id asc
+    </select>
+
+    <insert id="insertMessage" parameterType="com.ruoyi.system.domain.social.chat.SocialChatMessage"
+            useGeneratedKeys="true" keyProperty="messageId">
+        insert into social_chat_message (
+            conversation_id, from_user_id, to_user_id, message_type, content, read_status, created_at
+        ) values (
+            #{conversationId}, #{fromUserId}, #{toUserId}, #{messageType}, #{content}, #{readStatus}, now()
+        )
+    </insert>
+
+    <update id="markMessagesRead">
+        update social_chat_message
+        set read_status = 'Y',
+            read_at = now()
+        where conversation_id = #{conversationId}
+          and to_user_id = #{readerUserId}
+          and read_status = 'N'
+    </update>
+
+    <update id="clearUnreadCount">
+        update social_chat_conversation
+        set user_a_unread = case when user_a = #{readerUserId} then 0 else user_a_unread end,
+            user_b_unread = case when user_b = #{readerUserId} then 0 else user_b_unread end,
+            updated_at = now()
+        where conversation_id = #{conversationId}
+    </update>
+
+</mapper>

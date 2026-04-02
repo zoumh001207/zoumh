@@ -51,6 +51,12 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         where profile_id = #{profileId}
     </select>
 
+    <select id="selectSocialUserProfileByUserId" resultMap="SocialUserProfileResult">
+        <include refid="selectSocialUserProfileVo"/>
+        where user_id = #{userId}
+        limit 1
+    </select>
+
     <select id="selectSocialUserProfileList" parameterType="com.ruoyi.system.domain.social.SocialUserProfile" resultMap="SocialUserProfileResult">
         <include refid="selectSocialUserProfileVo"/>
         <where>
@@ -63,6 +69,15 @@ PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
             <if test="profileStatus != null and profileStatus != ''">and profile_status = #{profileStatus}</if>
         </where>
         order by profile_id desc
+    </select>
+
+    <select id="selectPublicProfilesForApp" resultMap="SocialUserProfileResult">
+        <include refid="selectSocialUserProfileVo"/>
+        where profile_status = 'A'
+        <if test="currentUserId != null">
+            and user_id != #{currentUserId}
+        </if>
+        order by real_verified desc, profile_id desc
     </select>
 
     <insert id="insertSocialUserProfile" parameterType="com.ruoyi.system.domain.social.SocialUserProfile" useGeneratedKeys="true" keyProperty="profileId">
