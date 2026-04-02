@@ -38,7 +38,9 @@ public class SocialChatServiceImpl implements ISocialChatService
         {
             throw new ServiceException("不能查看和自己的聊天记录");
         }
-        SocialChatConversation conversation = socialChatMapper.selectConversationBetweenUsers(userId, targetUserId);
+        Long userA = Math.min(userId, targetUserId);
+        Long userB = Math.max(userId, targetUserId);
+        SocialChatConversation conversation = socialChatMapper.selectConversationBetweenUsers(userA, userB);
         if (conversation == null)
         {
             return Collections.emptyList();
@@ -61,12 +63,14 @@ public class SocialChatServiceImpl implements ISocialChatService
             throw new ServiceException("消息内容不能为空");
         }
 
-        SocialChatConversation conversation = socialChatMapper.selectConversationBetweenUsers(userId, targetUserId);
+        Long userA = Math.min(userId, targetUserId);
+        Long userB = Math.max(userId, targetUserId);
+        SocialChatConversation conversation = socialChatMapper.selectConversationBetweenUsers(userA, userB);
         if (conversation == null)
         {
             conversation = new SocialChatConversation();
-            conversation.setUserA(Math.min(userId, targetUserId));
-            conversation.setUserB(Math.max(userId, targetUserId));
+            conversation.setUserA(userA);
+            conversation.setUserB(userB);
             conversation.setLastSenderId(userId);
             conversation.setLastMessage(content);
             socialChatMapper.insertConversation(conversation);
