@@ -1,0 +1,50 @@
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: auth
+          uri: lb://zoumh-auth
+          predicates:
+            - Path=/auth/**
+          filters:
+            - CacheRequestBody
+            - ValidateCodeFilter
+            - StripPrefix=1
+        - id: system
+          uri: lb://ruoyi-system
+          predicates:
+            - Path=/system/**
+          filters:
+            - StripPrefix=1
+        - id: file
+          uri: lb://ruoyi-file
+          predicates:
+            - Path=/file/**
+          filters:
+            - StripPrefix=1
+        - id: monitor-online
+          uri: lb://ruoyi-system
+          predicates:
+            - Path=/monitor/online/**
+          filters:
+            - StripPrefix=1
+        - id: monitor
+          uri: lb://ruoyi-monitor
+          predicates:
+            - Path=/monitor/**
+          filters:
+            - StripPrefix=1
+
+security:
+  captcha:
+    enabled: false
+  ignore:
+    whites:
+      - /auth/login
+      - /auth/register
+      - /auth/logout
+      - /system/music/**
+      - /*/v2/api-docs
+      - /*/v3/api-docs
+      - /csrf
+      - /file/view/**
