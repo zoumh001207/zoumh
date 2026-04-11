@@ -210,20 +210,28 @@ WHERE m.perms LIKE 'hotel:monitor:%'
    OR m.path = 'hotel'
    OR m.path = 'monitor'
    OR m.component = 'hotel/monitor/index'
-   OR m.route_name IN ('Hotel', 'HotelMonitor');
+   OR m.route_name IN ('Hotel', 'HotelMonitor')
+   OR m.perms LIKE 'social:%'
+   OR m.path = 'social'
+   OR m.component LIKE 'social/%'
+   OR m.route_name LIKE 'Social%';
 
 DELETE FROM sys_menu
 WHERE perms LIKE 'hotel:monitor:%'
    OR path = 'hotel'
    OR path = 'monitor'
    OR component = 'hotel/monitor/index'
-   OR route_name IN ('Hotel', 'HotelMonitor');
+   OR route_name IN ('Hotel', 'HotelMonitor')
+   OR perms LIKE 'social:%'
+   OR path = 'social'
+   OR component LIKE 'social/%'
+   OR route_name LIKE 'Social%';
 EOF
 )"
 
   if docker ps --format '{{.Names}}' | grep -qx 'mysql8'; then
     docker exec -i mysql8 mysql -uroot -pzoumh zoumh -e "${sql}" >/dev/null
-    echo "removed stale zoumh-hotel-monitor menu data"
+    echo "removed stale zoumh-hotel-monitor/social menu data"
   else
     echo "skip menu cleanup: mysql8 container not running"
   fi

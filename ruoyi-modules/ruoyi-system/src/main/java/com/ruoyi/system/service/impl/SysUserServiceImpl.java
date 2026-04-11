@@ -28,7 +28,6 @@ import com.ruoyi.system.mapper.SysRoleMapper;
 import com.ruoyi.system.mapper.SysUserMapper;
 import com.ruoyi.system.mapper.SysUserPostMapper;
 import com.ruoyi.system.mapper.SysUserRoleMapper;
-import com.ruoyi.system.service.social.ISocialAppService;
 import com.ruoyi.system.service.ISysConfigService;
 import com.ruoyi.system.service.ISysDeptService;
 import com.ruoyi.system.service.ISysUserService;
@@ -64,8 +63,6 @@ public class SysUserServiceImpl implements ISysUserService
     @Autowired
     private ISysDeptService deptService;
 
-    @Autowired
-    private ISocialAppService socialAppService;
 
     @Autowired
     protected Validator validator;
@@ -300,7 +297,6 @@ public class SysUserServiceImpl implements ISysUserService
 
         Long registerRoleId = Convert.toLong(configService.selectConfigByKey("sys.account.registerRoleId"), 2L);
         insertUserRole(user.getUserId(), new Long[] { registerRoleId });
-        socialAppService.initSocialProfileForUser(user.getUserId(), user.getUserName(), user.getNickName());
         return true;
     }
 
