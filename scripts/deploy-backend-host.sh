@@ -37,6 +37,13 @@ MINIO_DATA_DIR="${MINIO_DATA_DIR:-/zoumh/data/minio}"
 MINIO_CONSOLE_PORT="${MINIO_CONSOLE_PORT:-9001}"
 MINIO_API_PORT="${MINIO_API_PORT:-9000}"
 MINIO_NETWORK="${MINIO_NETWORK:-docker-compose_backend}"
+NCM2MP3_DIR="${NCM2MP3_DIR:-/zoumh/java/zmh/backend/ncm2mp3}"
+NCM2MP3_JAR="${NCM2MP3_JAR:-ncm2mp3-1.0.0.jar}"
+NCM2MP3_CONTAINER_NAME="${NCM2MP3_CONTAINER_NAME:-ncm2mp3}"
+NCM2MP3_PORT="${NCM2MP3_PORT:-1207}"
+NCM2MP3_NETWORK="${NCM2MP3_NETWORK:-docker-compose_backend}"
+NCM2MP3_MEMORY="${NCM2MP3_MEMORY:-512m}"
+NCM2MP3_MEMORY_RESERVATION="${NCM2MP3_MEMORY_RESERVATION:-192m}"
 PUBLIC_NGINX_CONF_SOURCE="${PUBLIC_NGINX_CONF_SOURCE:-/zoumh/java/zmh/backend/nginx/nginx.conf}"
 PUBLIC_NGINX_CONF_TARGET="${PUBLIC_NGINX_CONF_TARGET:-/zoumh/data/nginx/conf/nginx.conf}"
 
@@ -259,6 +266,39 @@ ensure_minio() {
   echo "started ${MINIO_CONTAINER_NAME}"
 }
 
+ensure_ncm2mp3() {
+  mkdir -p "${NCM2MP3_DIR}" "${LOG_DIR}" "${JAVA_TMPDIR}"
+
+  if [[ ! -f "${NCM2MP3_DIR}/${NCM2MP3_JAR}" ]]; then
+    echo "skip ${NCM2MP3_CONTAINER_NAME}: ${NCM2MP3_DIR}/${NCM2MP3_JAR} not found"
+    return 0
+  fi
+
+  docker rm -f "${NCM2MP3_CONTAINER_NAME}" >/dev/null 2>&1 || true
+  docker run -d \
+    --name "${NCM2MP3_CONTAINER_NAME}" \
+    --restart unless-stopped \
+    --network "${NCM2MP3_NETWORK}" \
+    --memory="${NCM2MP3_MEMORY}" \
+    --memory-reservation="${NCM2MP3_MEMORY_RESERVATION}" \
+    --pids-limit="128" \
+    --log-opt max-size=20m \
+    --log-opt max-file=3 \
+    -e TZ="${TZ_NAME}" \
+    -e JAVA_HOME=/opt/jdk \
+    -e "PATH=/opt/jdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
+    -e "SERVER_PORT=${NCM2MP3_PORT}" \
+    -e "JAVA_OPTS=${DEFAULT_JAVA_OPTS} -Xms128m -Xmx320m" \
+    -v "${NCM2MP3_DIR}:/app" \
+    -v "${LOG_DIR}:/logs" \
+    -v "${JDK_HOME}:/opt/jdk:ro" \
+    -v "${JAVA_TMPDIR}:${JAVA_TMPDIR}" \
+    "${JAVA_IMAGE}" \
+    sh -lc "mkdir -p '${JAVA_TMPDIR}' && exec /opt/jdk/bin/java \$JAVA_OPTS -jar /app/${NCM2MP3_JAR} > /logs/${NCM2MP3_CONTAINER_NAME}.log 2>&1"
+
+  echo "started ${NCM2MP3_CONTAINER_NAME}"
+}
+
 sync_public_nginx_conf() {
   if [[ ! -f "${PUBLIC_NGINX_CONF_SOURCE}" ]]; then
     echo "skip public nginx sync: source not found ${PUBLIC_NGINX_CONF_SOURCE}"
@@ -303,6 +343,7 @@ docker rm -f "kafka" >/dev/null 2>&1 || true
 docker rm -f "zookeeper" >/dev/null 2>&1 || true
 cleanup_removed_module_menu_data
 ensure_minio
+ensure_ncm2mp3
 sync_public_nginx_conf
 
 run_java_service() {
@@ -416,5 +457,7 @@ docker stats --no-stream --format '{{.Name}}\t{{.MemUsage}}' | grep -E 'ruoyi-(a
 docker ps --format 'table {{.Names}}\t{{.Status}}' | grep -E 'ruoyi-(auth|system|file|gateway)' || true
 echo "--- ruoyi-file.log tail ---"
 tail -n 120 "${LOG_DIR}/ruoyi-file.log" 2>/dev/null || true
+echo "--- ncm2mp3.log tail ---"
+tail -n 120 "${LOG_DIR}/${NCM2MP3_CONTAINER_NAME}.log" 2>/dev/null || true
 echo "--- restarting containers ---"
 docker ps -a --filter status=restarting --format 'table {{.Names}}\t{{.Status}}' || true

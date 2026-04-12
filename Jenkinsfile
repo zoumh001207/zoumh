@@ -15,6 +15,7 @@ pipeline {
         string(name: 'ROOT_DOC_PATH', defaultValue: '/zoumh/java/zmh/README-运维.md', description: 'Root ops readme path')
         string(name: 'DOCS_DIR', defaultValue: '/zoumh/java/zmh/backend/docs', description: 'Remote backend docs directory')
         string(name: 'LOG_DIR', defaultValue: '/zoumh/java/zmh/backend/logs', description: 'Remote backend log directory')
+        string(name: 'NCM2MP3_DIR', defaultValue: '/zoumh/java/zmh/backend/ncm2mp3', description: 'Remote ncm2mp3 artifact directory')
         string(name: 'PUBLIC_NGINX_DIR', defaultValue: '/zoumh/java/zmh/backend/nginx', description: 'Remote public nginx config directory')
         string(name: 'PUBLIC_NGINX_CONF_TARGET', defaultValue: '/zoumh/data/nginx/conf/nginx.conf', description: 'Live public nginx config path')
         string(name: 'DEPLOY_SCRIPT_DIR', defaultValue: '/zoumh/java/zmh/backend/bin', description: 'Remote backend script directory')
@@ -74,11 +75,12 @@ pipeline {
                     if (params.DEPLOY_MODE == 'local') {
                         sh '''
                             set -e
-                            mkdir -p "${DEPLOY_DIR}/packages" "${LOG_DIR}" "${DEPLOY_SCRIPT_DIR}" "${DOCS_DIR}" "${PUBLIC_NGINX_DIR}"
+                            mkdir -p "${DEPLOY_DIR}/packages" "${LOG_DIR}" "${DEPLOY_SCRIPT_DIR}" "${DOCS_DIR}" "${PUBLIC_NGINX_DIR}" "${NCM2MP3_DIR}"
                             cp -f ruoyi-gateway/target/*.jar "${DEPLOY_DIR}/packages/" || true
                             cp -f ruoyi-auth/target/*.jar "${DEPLOY_DIR}/packages/" || true
                             cp -f ruoyi-modules/ruoyi-system/target/*.jar "${DEPLOY_DIR}/packages/" || true
                             cp -f ruoyi-modules/ruoyi-file/target/*.jar "${DEPLOY_DIR}/packages/" || true
+                            cp -f tools/ncm2mp3/*.jar "${NCM2MP3_DIR}/" || true
                             cp -f scripts/deploy-backend-host.sh "${DEPLOY_SCRIPT_DIR}/deploy-backend-host.sh"
                             cp -f docs/server-ops-guide.md "${DOCS_DIR}/server-ops-guide.md"
                             cp -f docs/server-ops-guide.md "${ROOT_DOC_PATH}"
@@ -90,11 +92,12 @@ pipeline {
                         sshagent(credentials: [params.SSH_CREDENTIALS_ID]) {
                             sh '''
                                 set -e
-                                ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_HOST} "mkdir -p ${DEPLOY_DIR}/packages ${LOG_DIR} ${DEPLOY_SCRIPT_DIR} ${DOCS_DIR} ${PUBLIC_NGINX_DIR}"
+                                ssh -o StrictHostKeyChecking=no ${SSH_USER}@${SSH_HOST} "mkdir -p ${DEPLOY_DIR}/packages ${LOG_DIR} ${DEPLOY_SCRIPT_DIR} ${DOCS_DIR} ${PUBLIC_NGINX_DIR} ${NCM2MP3_DIR}"
                                 scp -o StrictHostKeyChecking=no ruoyi-gateway/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
                                 scp -o StrictHostKeyChecking=no ruoyi-auth/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
                                 scp -o StrictHostKeyChecking=no ruoyi-modules/ruoyi-system/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
                                 scp -o StrictHostKeyChecking=no ruoyi-modules/ruoyi-file/target/*.jar ${SSH_USER}@${SSH_HOST}:${DEPLOY_DIR}/packages/ || true
+                                scp -o StrictHostKeyChecking=no tools/ncm2mp3/*.jar ${SSH_USER}@${SSH_HOST}:${NCM2MP3_DIR}/ || true
                                 scp -o StrictHostKeyChecking=no scripts/deploy-backend-host.sh ${SSH_USER}@${SSH_HOST}:${DEPLOY_SCRIPT_DIR}/deploy-backend-host.sh
                                 scp -o StrictHostKeyChecking=no docs/server-ops-guide.md ${SSH_USER}@${SSH_HOST}:${DOCS_DIR}/server-ops-guide.md
                                 scp -o StrictHostKeyChecking=no docs/server-ops-guide.md ${SSH_USER}@${SSH_HOST}:'${ROOT_DOC_PATH}'
